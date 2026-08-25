@@ -139,3 +139,7 @@ cython_debug/
 
 # docs
 docs/Development-Draft/
+
+.codex/*
+.zcode/*
+.trae/*
