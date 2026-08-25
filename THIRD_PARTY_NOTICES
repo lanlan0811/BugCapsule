@@ -1,0 +1,18 @@
+BugCapsule Third-Party Notices
+
+As of 2026-08-26, this repository does not contain application source code,
+vendored third-party software, generated bundles, or a dependency lock file.
+Therefore, there are currently no third-party attribution notices to list.
+
+The development plan names possible future dependencies for evaluation. A name
+in a plan or design document does not mean that the dependency is distributed
+by this repository.
+
+Before each release, the maintainers will derive the authoritative dependency
+inventory from the committed lock file and release artifacts, generate a
+CycloneDX SBOM, and add all notices required by the applicable third-party
+licenses to this file. The license text for BugCapsule itself is in LICENSE.
+
+This file is informational and does not replace the license terms of any
+third-party component.
+
