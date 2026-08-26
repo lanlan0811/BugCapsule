@@ -12,6 +12,7 @@ build/
 develop-eggs/
 dist/
 supply-chain/
+tmp/
 downloads/
 eggs/
 .eggs/

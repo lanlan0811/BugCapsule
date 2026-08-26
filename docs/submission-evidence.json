@@ -144,6 +144,17 @@
           ],
           "verification": "人工核对链接和模板字段",
           "status": "verified"
+        },
+        {
+          "claim": "项目介绍 PDF 由锁定工具链确定性生成，并完成 8 页逐页渲染与 SHA-256 校验",
+          "paths": [
+            "output/pdf/BugCapsule_0.1_项目介绍.pdf",
+            "output/pdf/SHA256SUMS",
+            "output/pdf/README.md",
+            "scripts/build_project_pdf.py"
+          ],
+          "verification": "按 output/pdf/README.md 重新生成、校验摘要并渲染全部页面",
+          "status": "verified"
         }
       ]
     },

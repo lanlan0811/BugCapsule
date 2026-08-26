@@ -92,4 +92,6 @@ Do not submit production logs, credentials, personal data, or proprietary source
 
 Competition claims, repository evidence, reproduction commands, and explicitly unfinished external work are mapped in the [review evidence index](docs/submission-evidence.md).
 
+The reproducible eight-page Chinese [project introduction PDF](output/pdf/README.md) is committed with its builder, locked artifact dependencies, rendering QA notes, and SHA-256 checksum.
+
 BugCapsule is licensed under the [Apache License 2.0](LICENSE).

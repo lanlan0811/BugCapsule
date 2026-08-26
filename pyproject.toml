@@ -51,6 +51,11 @@ supply-chain = [
   "cyclonedx-bom==7.3.1",
   "pip-audit==2.10.1",
 ]
+artifacts = [
+  "pdfplumber==0.11.9",
+  "pypdf==6.10.0",
+  "reportlab==4.4.9",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bugcapsule"]
