@@ -12,7 +12,7 @@
       "status": "partially_verified",
       "paths": ["README.md", "README.en.md", ".github/workflows/ci.yml", ".github/workflows/release.yml"],
       "expected_outputs": [],
-      "blockers": ["冻结 release_commit，并在全部门槛满足后创建同一提交的 v0.1.0 标签与 Release 附件"]
+      "blockers": ["Gitee master 与 GitHub 镜像已同步；仍需冻结 release_commit，并在全部门槛满足后创建同一提交的 v0.1.0 标签与 Release 附件"]
     },
     {
       "id": "bilingual_documentation",

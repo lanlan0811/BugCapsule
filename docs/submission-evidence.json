@@ -58,8 +58,8 @@
             "tests/demo/test_controller.py",
             ".github/workflows/ci.yml"
           ],
-          "verification": "docker compose up --build --detach --wait；随后 uv run bugcapsule demo run 和 uv run bugcapsule demo capture",
-          "status": "partially_verified"
+          "verification": "GitHub Actions CI run 32955668267：Compose 配置、HTTP 健康检查、500/500/503 池耗尽与 reset 全部通过；Windows 录制环境仍按路演手册单独彩排",
+          "status": "verified"
         },
         {
           "claim": "Trace、日志、源码、Git 与环境形成因果时间线，并由 CLI、Web 和自包含 HTML 报告读取同一事实源",
@@ -91,8 +91,8 @@
             "verification_tests/test_connection_release.py",
             "verification_tests/fixtures/connection-release.diff"
           ],
-          "verification": "CI / demo-integration 的 Verify restricted regression is stable for 20 before/after runs 步骤",
-          "status": "external_pending"
+          "verification": "GitHub Actions CI run 32955668267 / demo-integration：修复前 20/20 失败、修复后 20/20 通过",
+          "status": "verified"
         }
       ]
     },

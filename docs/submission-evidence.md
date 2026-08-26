@@ -1,6 +1,6 @@
 # 参赛评审证据索引
 
-本页把大赛开发计划中的四个评分维度映射到仓库可复核事实。它不是宣传清单：`已验证` 只表示仓库内测试或本机命令已经完成；需要 Docker CI、独立参与者、模型提供方、远端镜像或正式标签的事项会保留为待完成。
+本页把大赛开发计划中的四个评分维度映射到仓库可复核事实。它不是宣传清单：`已验证` 只表示仓库测试、本机命令或可定位的远端 CI 已经完成；需要独立参与者、模型提供方、录制环境或正式标签的事项会保留为待完成。
 
 机器可读版本位于 [`submission-evidence.json`](submission-evidence.json)，测试会校验四项权重合计 100%、状态枚举、相对路径安全性和每个证据文件是否存在。
 
@@ -10,7 +10,7 @@
 | --- | --- |
 | 已验证 | 已由仓库测试、确定性命令或本机端到端流程复核 |
 | 部分验证 | 单元/集成逻辑已验证，但指定外部运行环境尚未完成 |
-| 外部待完成 | 依赖 Docker CI、首次使用者、Live 模型、远端同步或正式 Release，不能由开发者自测替代 |
+| 外部待完成 | 依赖首次使用者、Live 模型、Windows 录制彩排或正式 Release，不能由开发者自测替代 |
 
 ## 技术创新（30%）
 
@@ -27,11 +27,11 @@ uv run pytest tests/capsule tests/analysis tests/patching tests/verification -o 
 
 ## 场景落地（30%）
 
-- FastAPI + PostgreSQL 使用 `pool_size=2`、`max_overflow=0`，前两次异常请求保留 Session，第三次稳定返回池耗尽；`demo capture` 受控同步命名卷证据并生成索引胶囊。逻辑、同步校验和状态机已验证；当前开发机缺少 Docker CLI，Compose 实机结果仍待 CI/外部环境确认。状态：部分验证。
+- FastAPI + PostgreSQL 使用 `pool_size=2`、`max_overflow=0`，前两次异常请求保留 Session，第三次稳定返回池耗尽；`demo capture` 受控同步命名卷证据并生成索引胶囊。GitHub Actions [CI run 32955668267](https://github.com/lanlan0811/BugCapsule/actions/runs/32955668267) 已实测 Compose HTTP 就绪、`500/500/503` 故障序列与 reset。状态：已验证。
 - Trace、Span、日志、Stack Trace、源码、Git 和环境由同一 Trace Context 关联；SQLite 只是可重建索引，胶囊是事实源。状态：已验证。
 - CLI、Jinja2/HTMX Web 与自包含 HTML 报告读取同一 `CapsuleDetail`，报告无外部脚本、字体或网络资源。状态：已验证。
 - 12 案例仿真基准的注释回放实测 Top-1、引用有效率、Trace/日志/源码必需证据覆盖率均为 100%；该结果只证明确定性管线和评分器，不代表 Live 模型能力。状态：已验证。
-- 修复前 20/20 失败、修复后 20/20 通过已写入受限 Docker CI；开发机尚未执行 Docker 实机。状态：外部待完成。
+- 受限 Docker 回归在同一 CI 的隔离、非 root、无网络验证器中实测修复前 20/20 失败、修复后 20/20 通过。状态：已验证。
 
 最短复核命令：
 
@@ -56,14 +56,13 @@ uv run pytest
 - 分层架构、版本化 Schema、模型适配协议、精确回放与公开路线图为后续扩展保留边界。状态：已验证。
 - 3–5 名首次使用者试用必须按[可用性协议](usability-study.md)真实执行；仓库提供严格结构化输入校验和只输出群组指标的[匿名汇总流程](../output/usability/README.md)，当前没有用开发者自测或估算填充结果。状态：外部待完成。
 - Live 默认模型指标必须在实际提供方配置后单独发布，不能用注释回放替代。状态：外部待完成。
-- GitHub 镜像同步、正式 `v0.1.0` 标签和 Gitee/GitHub Release 必须在全部发布门槛满足后完成。状态：外部待完成。
+- Gitee `master` 与 GitHub 镜像已同步；正式 `v0.1.0` 标签和 Gitee/GitHub Release 必须在全部发布门槛满足后完成。状态：外部待完成。
 
 ## 当前发布阻塞项
 
-1. 在可用 Docker Engine 的环境确认 Compose 主场景、受限验证器和 20/20 前后回归；
-2. 配置比赛采用的 Live 模型并独立发布 Live 指标；
-3. 邀请 3–5 名首次使用者，按协议发布去标识汇总；
-4. 按已校验的 180 秒镜头表完成 Docker 三次彩排、断网验收和最终 MP4；
-5. 同步 GitHub 镜像并在代码冻结后创建同一提交的 `v0.1.0` Release。
+1. 配置比赛采用的 Live 模型并独立发布 Live 指标；
+2. 邀请 3–5 名首次使用者，按协议发布去标识汇总；
+3. 在 Windows Docker 录制环境按已校验的 180 秒镜头表完成三次彩排、断网验收和最终 MP4；
+4. 代码冻结后创建同一提交的 `v0.1.0` 标签与 Gitee/GitHub Release，并发布供应链附件。
 
 阻塞项未清零前，仓库保持 `0.1.0` 开发状态，不创建正式标签。
