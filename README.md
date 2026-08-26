@@ -80,6 +80,14 @@ uv run bugcapsule demo down
 
 每条故障日志携带与 HTTP/数据库 Span 一致的 `trace_id` 和 `span_id`。Docker 模式使用 `demo-telemetry-data` 命名卷保存这些证据。
 
+从故障日志中取得 32 位 Trace ID 后，可生成开放胶囊：
+
+```powershell
+uv run bugcapsule capture --trace-id <trace-id>
+```
+
+输出位于 `.bugcapsule-data/capsules/`。捕获器只读取 `BUGCAPSULE_SOURCE_INCLUDE_ROOT` 指定目录中的源码窗口；归档包含 Span、日志、Stack Trace、相对源码片段、Git、依赖锁摘要、环境摘要和合并后的脱敏报告。
+
 ## 质量检查
 
 ```powershell

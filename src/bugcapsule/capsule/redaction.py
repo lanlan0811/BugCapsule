@@ -63,6 +63,14 @@ DEFAULT_RULES = (
         "[REDACTED:PHONE]",
     ),
     RedactionRule(
+        "user-home-path",
+        re.compile(
+            r"(?:(?i:[A-Z]:\\Users\\[^\\\r\n\"']+)"
+            r"|/(?:home|Users)/[^/\s\"']+)"
+        ),
+        "[REDACTED:USER_HOME]",
+    ),
+    RedactionRule(
         "common-api-key",
         re.compile(
             r"(?<![A-Za-z0-9])(?:"
@@ -101,10 +109,18 @@ class Redactor:
     def __init__(self, rules: tuple[RedactionRule, ...] = DEFAULT_RULES) -> None:
         self.rules = rules
 
-    def redact(self, value: object, *, completed_at: datetime) -> RedactionResult:
+    def redact(
+        self,
+        value: object,
+        *,
+        completed_at: datetime,
+        root_location: str = "$",
+    ) -> RedactionResult:
+        if not root_location.startswith("$"):
+            raise ValueError("root_location must start with $")
         findings: list[RedactionFinding] = []
         normalized = JSON_VALUE_ADAPTER.validate_python(value)
-        redacted = self._redact_value(normalized, "$", findings)
+        redacted = self._redact_value(normalized, root_location, findings)
         report = RedactionReport(
             completed_at=completed_at,
             total_findings=len(findings),

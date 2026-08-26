@@ -8,6 +8,7 @@ import uvicorn
 from pydantic import ValidationError
 
 from bugcapsule import __version__
+from bugcapsule.capsule.capture import CaptureError, CaptureService
 from bugcapsule.config import Settings, get_settings
 from bugcapsule.demo.config import DemoSettings
 from bugcapsule.demo.controller import DemoControlError, DemoController, DemoRunResult
@@ -48,6 +49,19 @@ def serve() -> None:
         port=settings.port,
         log_level=settings.log_level.lower(),
     )
+
+
+@app.command()
+def capture(
+    trace_id: Annotated[str, typer.Option("--trace-id", help="32 位小写十六进制 Trace ID。")],
+) -> None:
+    """从本地运行时证据生成已脱敏且可校验的故障胶囊。"""
+    try:
+        destination = CaptureService(get_settings()).capture(trace_id)
+    except CaptureError as exc:
+        typer.echo(f"捕获失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(str(destination))
 
 
 def get_demo_controller() -> DemoController:

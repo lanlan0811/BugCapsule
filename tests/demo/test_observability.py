@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +10,7 @@ import httpx
 
 from bugcapsule.demo.app import create_demo_app
 from bugcapsule.demo.config import DemoSettings
+from bugcapsule.demo.observability import TelemetryWriter
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -42,3 +44,20 @@ def test_fault_log_trace_context_matches_exported_http_span(tmp_path: Path) -> N
     assert any("/demo/leak" in item["name"] for item in same_trace_spans)
     assert any(item["attributes"].get("db.system") == "sqlite" for item in same_trace_spans)
     assert all(len(item["trace_id"]) == 32 for item in same_trace_spans)
+
+
+def test_telemetry_redaction_audit_is_bound_to_trace(tmp_path: Path) -> None:
+    writer = TelemetryWriter(tmp_path)
+
+    writer.write(
+        "logs",
+        {"trace_id": "1" * 32, "message": "contact dev@example.com"},
+        captured_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
+    )
+
+    audit = read_jsonl(tmp_path / "redaction-findings.jsonl")[0]
+    logs = read_jsonl(tmp_path / "logs.jsonl")
+    assert audit["trace_id"] == "1" * 32
+    assert audit["stream"] == "logs"
+    assert audit["report"]["total_findings"] == 1
+    assert "dev@example.com" not in json.dumps(logs)

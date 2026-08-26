@@ -51,9 +51,14 @@ class TelemetryWriter:
         with self._lock:
             self._append(self.directory / f"{stream}.jsonl", result.value)
             if result.report.findings:
+                trace_id = payload.get("trace_id") if isinstance(payload, Mapping) else None
                 self._append(
                     self.directory / "redaction-findings.jsonl",
-                    result.report.model_dump(mode="json"),
+                    {
+                        "stream": stream,
+                        "trace_id": trace_id,
+                        "report": result.report.model_dump(mode="json"),
+                    },
                 )
 
     @staticmethod
@@ -92,6 +97,7 @@ class JsonlSpanExporter(SpanExporter):
                     }
                     for event in span.events
                 ],
+                "resource": json_compatible(span.resource.attributes),
             }
             captured_at = datetime.now(timezone.utc)
             if span.end_time is not None:

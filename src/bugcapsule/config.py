@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     port: int = Field(default=8765, ge=1024, le=65535)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     data_dir: Path = Path(".bugcapsule-data")
+    demo_telemetry_dir: Path = Path(".bugcapsule-data/demo")
+    source_root: Path = Path()
+    source_include_root: Path = Path("src")
+    source_context_lines: int = Field(default=30, ge=1, le=100)
 
 
 @lru_cache

@@ -1,9 +1,12 @@
 """Tests for the command-line entry point."""
 
+from pathlib import Path
+
 import pytest
 from typer.testing import CliRunner
 
 from bugcapsule import __version__
+from bugcapsule.capsule.capture import CaptureError
 from bugcapsule.cli import app
 from bugcapsule.config import get_settings
 from bugcapsule.demo.controller import DemoControlError, DemoRunResult
@@ -96,5 +99,36 @@ def test_demo_command_reports_control_error(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr("bugcapsule.cli.get_demo_controller", lambda: controller)
 
     result = runner.invoke(app, ["demo", "up"])
+
+    assert result.exit_code == 1
+
+
+def test_capture_command_prints_destination(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    destination = tmp_path / "cap_test.bugcapsule"
+
+    class FakeCaptureService:
+        def capture(self, trace_id: str) -> Path:
+            assert trace_id == "1" * 32
+            return destination
+
+    monkeypatch.setattr("bugcapsule.cli.CaptureService", lambda _: FakeCaptureService())
+
+    result = runner.invoke(app, ["capture", "--trace-id", "1" * 32])
+
+    assert result.exit_code == 0
+    assert str(destination) in result.stdout
+
+
+def test_capture_command_reports_capture_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FailingCaptureService:
+        def capture(self, trace_id: str) -> Path:
+            raise CaptureError(f"missing {trace_id}")
+
+    monkeypatch.setattr("bugcapsule.cli.CaptureService", lambda _: FailingCaptureService())
+
+    result = runner.invoke(app, ["capture", "--trace-id", "1" * 32])
 
     assert result.exit_code == 1

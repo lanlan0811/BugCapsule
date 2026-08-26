@@ -18,6 +18,7 @@ def test_redactor_removes_sensitive_fields_and_value_patterns() -> None:
         "message": "contact dev@example.com or +86 13800138000",
         "credentials": "Bearer generic-secret-value and sk-live_abcdefghijklmnopqrstuvwxyz",
         "request_url": "http://localhost/orders?token=query-secret&limit=10",
+        "stack": r"C:\Users\developer\project\app.py and /home/runner/project/app.py",
         "nested": [{"api_key": "sk-exampleabcdefghijklmnop"}],
     }
 
@@ -34,11 +35,13 @@ def test_redactor_removes_sensitive_fields_and_value_patterns() -> None:
         b"generic-secret-value",
         b"sk-live_abcdefghijklmnopqrstuvwxyz",
         b"query-secret",
+        rb"C:\Users\developer",
+        b"/home/runner",
         b"sk-exampleabcdefghijklmnop",
     ):
         assert secret not in serialized
         assert secret not in report_bytes
-    assert result.report.total_findings == 9
+    assert result.report.total_findings == 10
     assert {finding.rule_id for finding in result.report.findings} == {
         "sensitive-field",
         "database-url",
@@ -47,6 +50,7 @@ def test_redactor_removes_sensitive_fields_and_value_patterns() -> None:
         "authorization-value",
         "common-api-key",
         "url-credential",
+        "user-home-path",
     }
 
 
