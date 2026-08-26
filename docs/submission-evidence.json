@@ -157,6 +157,18 @@
           ],
           "verification": "按 output/pdf/README.md 重新生成、校验摘要并渲染全部页面",
           "status": "verified"
+        },
+        {
+          "claim": "三分钟路演具有严格连续的 180 秒镜头表、仓库证据链接、录制口径和断网兜底；Docker 彩排与最终 MP4 尚待实际录制",
+          "paths": [
+            "output/video/demo-shot-list.json",
+            "output/video/README.md",
+            "docs/demo-runbook.md",
+            "scripts/validate_demo_plan.py",
+            "tests/test_demo_plan.py"
+          ],
+          "verification": "uv run python scripts/validate_demo_plan.py；随后按 docs/demo-runbook.md 在 Docker 环境完成三次彩排",
+          "status": "partially_verified"
         }
       ]
     },

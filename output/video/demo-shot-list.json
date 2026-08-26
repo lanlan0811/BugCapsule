@@ -1,0 +1,161 @@
+{
+  "schema_version": "0.1.0",
+  "language": "zh-CN",
+  "target_duration_seconds": 180,
+  "recording_profile": {
+    "resolution": "1920x1080",
+    "frame_rate": 30,
+    "browser_zoom_percent": 100,
+    "capture_scope": "BugCapsule Web、PowerShell 与自包含 HTML 报告",
+    "model_disclosure": "模型画面固定显示 replay · 结构化离线回放，不将其表述为 Live 指标"
+  },
+  "shots": [
+    {
+      "id": "shot-01",
+      "start_second": 0,
+      "end_second": 12,
+      "mode": "live_runtime",
+      "title": "正常订单与实时 Trace",
+      "screen": "订单服务健康状态与 BugCapsule 演示页",
+      "operator_action": "展示 doctor 通过摘要、正常订单请求及 ready 状态",
+      "narration": "BugCapsule 把一次真实运行故障封装为可移交、可引用、可验证的证据胶囊。",
+      "success_cue": "HTTP 201、连接池 ready、Trace Context 可见",
+      "evidence_paths": ["src/bugcapsule/demo/app.py", "src/bugcapsule/demo/observability.py"]
+    },
+    {
+      "id": "shot-02",
+      "start_second": 12,
+      "end_second": 28,
+      "mode": "live_runtime",
+      "title": "连续触发连接泄漏",
+      "screen": "演示控制页四步序列",
+      "operator_action": "点击触发故障并展示前两次 HTTP 500",
+      "narration": "前两条异常路径故意保留 Session，占满固定为二的连接池。",
+      "success_cue": "HTTP 500 → 500，leaked_sessions 为 2",
+      "evidence_paths": ["src/bugcapsule/demo/database.py", "src/bugcapsule/templates/demo.html"]
+    },
+    {
+      "id": "shot-03",
+      "start_second": 28,
+      "end_second": 42,
+      "mode": "live_runtime",
+      "title": "第三次请求稳定耗尽",
+      "screen": "演示结果状态与故障标识",
+      "operator_action": "定格第三次 HTTP 503 与 database_pool_exhausted",
+      "narration": "第三次请求无法获得连接，稳定返回池耗尽，而不是依赖随机故障。",
+      "success_cue": "HTTP 503、database_pool_exhausted",
+      "evidence_paths": ["src/bugcapsule/demo/controller.py", "tests/demo/test_database.py"]
+    },
+    {
+      "id": "shot-04",
+      "start_second": 42,
+      "end_second": 56,
+      "mode": "live_runtime",
+      "title": "同步并生成开放胶囊",
+      "screen": "Web 捕获成功状态及胶囊详情入口",
+      "operator_action": "点击同步并捕获，随后打开新胶囊",
+      "narration": "命名卷中的脱敏证据经过大小、JSONL 和 Trace ID 校验，再生成带逐文件摘要的开放归档。",
+      "success_cue": "捕获成功、32 位 Trace ID、胶囊详情链接",
+      "evidence_paths": ["src/bugcapsule/demo/controller.py", "src/bugcapsule/capsule/capture.py", "docs/capsule-schema.md"]
+    },
+    {
+      "id": "shot-05",
+      "start_second": 56,
+      "end_second": 78,
+      "mode": "live_runtime",
+      "title": "Trace 到源码的证据链",
+      "screen": "胶囊详情因果时间线",
+      "operator_action": "依次指向 Trace、日志、Stack Trace、源码与 Git 标识",
+      "narration": "时间线由 Trace 和父 Span 关系确定，不由模型猜测；每项证据都有内容派生 ID。",
+      "success_cue": "Trace、日志、源码三类 Evidence ID 同屏",
+      "evidence_paths": ["src/bugcapsule/capsule/evidence.py", "src/bugcapsule/index.py", "docs/architecture.md"]
+    },
+    {
+      "id": "shot-06",
+      "start_second": 78,
+      "end_second": 100,
+      "mode": "structured_replay",
+      "title": "证据约束根因分析",
+      "screen": "replay 状态徽标与根因候选",
+      "operator_action": "运行结构化回放分析并展开证据引用",
+      "narration": "为保证路演可重复，这里明确使用结构化回放；未知 Evidence ID 会被本地拒绝。",
+      "success_cue": "replay 徽标、根因候选、有效 Evidence ID",
+      "evidence_paths": ["src/bugcapsule/analysis/service.py", "src/bugcapsule/analysis/replay.py", "tests/analysis/test_service.py"]
+    },
+    {
+      "id": "shot-07",
+      "start_second": 100,
+      "end_second": 120,
+      "mode": "structured_replay",
+      "title": "Evidence-bound Patch 安全检查",
+      "screen": "canonical unified diff 与安全检查清单",
+      "operator_action": "生成 Patch，展示修改路径、源码 Evidence 绑定和保护路径策略",
+      "narration": "模型只能提出 Diff；路径、保护文件、源码绑定和 Patch 标识全部由本地代码裁决。",
+      "success_cue": "单一允许路径、完整 Patch ID、安全检查通过",
+      "evidence_paths": ["src/bugcapsule/patching/safety.py", "tests/patching/test_safety.py", "docs/threat-model.md"]
+    },
+    {
+      "id": "shot-08",
+      "start_second": 120,
+      "end_second": 132,
+      "mode": "live_runtime",
+      "title": "人工核对 SHA-256",
+      "screen": "验证批准表单",
+      "operator_action": "核对完整 Patch ID 与 64 位 SHA-256 后明确批准",
+      "narration": "验证必须同时匹配 Patch ID、完整摘要和明确批准，内容替换会使批准失效。",
+      "success_cue": "三项批准值完整显示且一致",
+      "evidence_paths": ["src/bugcapsule/verification/service.py", "tests/verification/test_service.py"]
+    },
+    {
+      "id": "shot-09",
+      "start_second": 132,
+      "end_second": 162,
+      "mode": "live_runtime",
+      "title": "隔离验证前失败后通过",
+      "screen": "受限 Docker 验证结果",
+      "operator_action": "运行固定命令，展示 before 失败与 after 通过以及主仓哈希未变",
+      "narration": "Patch 只进入临时 after 副本；两个容器都无网络、非 root、只读挂载并受资源限制。",
+      "success_cue": "before failed、after passed、workspace unchanged",
+      "evidence_paths": ["src/bugcapsule/verification/docker.py", "Dockerfile.verify", "verification_tests/test_connection_release.py"]
+    },
+    {
+      "id": "shot-10",
+      "start_second": 162,
+      "end_second": 180,
+      "mode": "offline_artifact",
+      "title": "自包含报告与实测指标",
+      "screen": "断网 HTML 报告与评测摘要",
+      "operator_action": "打开下载报告并展示 12 案例回放指标边界",
+      "narration": "报告可断网审阅；回放指标验证管线与评分器，不冒充 Live 模型能力。",
+      "success_cue": "报告前后对比、12 案例、边界声明",
+      "evidence_paths": ["src/bugcapsule/reporting/service.py", "docs/benchmark.md", "docs/submission-evidence.md"]
+    }
+  ],
+  "assets": [
+    {
+      "id": "shot_plan",
+      "path": "output/video/demo-shot-list.json",
+      "status": "verified"
+    },
+    {
+      "id": "operator_runbook",
+      "path": "docs/demo-runbook.md",
+      "status": "verified"
+    },
+    {
+      "id": "project_pdf",
+      "path": "output/pdf/BugCapsule_0.1_项目介绍.pdf",
+      "status": "verified"
+    },
+    {
+      "id": "docker_rehearsal",
+      "path": "output/video/rehearsal-summary.json",
+      "status": "external_pending"
+    },
+    {
+      "id": "final_video",
+      "path": "output/video/BugCapsule_0.1_三分钟演示.mp4",
+      "status": "external_pending"
+    }
+  ]
+}

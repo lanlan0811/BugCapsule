@@ -207,6 +207,7 @@ uv run pytest
 - [发布供应链与 SBOM](docs/supply-chain.md)
 - [参赛评审证据索引](docs/submission-evidence.md)
 - [项目介绍 PDF](output/pdf/README.md)
+- [三分钟演示计划与录制手册](output/video/README.md)
 - [基准数据集](docs/benchmark.md)
 - [示例胶囊](examples/README.md)
 - [可用性验收协议](docs/usability-study.md)

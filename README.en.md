@@ -96,4 +96,6 @@ Competition claims, repository evidence, reproduction commands, and explicitly u
 
 The reproducible eight-page Chinese [project introduction PDF](output/pdf/README.md) is committed with its builder, locked artifact dependencies, rendering QA notes, and SHA-256 checksum.
 
+The [three-minute recording package](output/video/README.md) contains a machine-validated 180-second shot list and operator runbook. The Docker rehearsal and final MP4 remain explicitly pending until they are actually recorded.
+
 BugCapsule is licensed under the [Apache License 2.0](LICENSE).
