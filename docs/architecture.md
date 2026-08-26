@@ -76,10 +76,16 @@ SQLite 只保存可重建的列表元数据，例如胶囊 ID、状态、Trace/G
 
 Web 服务仅允许配置为 `127.0.0.1` 或 `localhost`，并校验 Host。页面由 Jinja2 服务端渲染；HTMX 2.0.10 与少量原生 JavaScript 均由 Python 包本地提供。胶囊上传受配置大小限制、同源检查和完整导入校验保护；相同 `capsule_id` 的不同字节不会覆盖现有归档。
 
+### HTML 对比报告
+
+`HtmlReportService` 只接受包含分析、Patch 和完整 before/after 验证结果的 `CapsuleDetail`。报告模板与 Web 页面复用同一证据视图模型和时间格式，不单独维护事实副本；渲染过程不读取当前工作区，也不再次调用模型。输出字节确定性生成并计算交付 SHA-256。
+
+HTML 内联 Design System 样式与 SVG 标志，不包含外部资源或脚本，并同时设置严格 CSP、`nosniff` 和 `no-store` 交付头。Jinja 自动转义覆盖模型文本、日志和证据内容。CLI 默认拒绝覆盖已有报告，Web 以附件形式下载同一组确定性字节。
+
 ## 事实一致性
 
-CLI `capsules list/show` 和 Web 页面都从 `CapsuleSummary`、`CapsuleDetail` 与 `EvidenceChain` 读取数据。Web 视图模型只负责中文标签、时间格式和展示摘要，不创建新的状态或分析结论。后续 HTML 报告必须复用相同对象。
+CLI `capsules list/show`、Web 页面和 HTML 报告都从 `CapsuleSummary`、`CapsuleDetail` 与 `EvidenceChain` 读取数据。共享视图模型只负责中文标签、时间格式和展示摘要，不创建新的状态或分析结论。
 
 ## 尚未实现的边界
 
-HTML 对比报告属于后续阶段。模型分析、Patch 或验证未运行时，Web 仍会明确显示对应的未开始状态，不会用占位结果冒充已完成事实。
+模型分析、Patch 或验证未运行时，Web 仍会明确显示对应的未开始状态，报告端点返回未就绪错误，不会用占位结果冒充已完成事实。量化评测与可用性研究属于后续阶段。

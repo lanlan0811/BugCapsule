@@ -66,3 +66,7 @@ Root Cause ID 与 Patch ID 均由本地规范化内容派生，模型不能指�
 `redaction-report.json` 只记录规则 ID、JSON Pointer 位置、固定替换标记和命中数量，绝不记录原始匹配内容。Finding ID 从这些非敏感审计字段稳定派生。
 
 正式验证逻辑以 [`src/bugcapsule/capsule/schema.py`](../src/bugcapsule/capsule/schema.py) 中的 Pydantic 模型为准。
+
+## 派生 HTML 报告
+
+HTML 对比报告不是胶囊载荷，也不加入 manifest，避免报告反向成为权威事实或形成自哈希循环。生成器每次先完成胶囊完整性、Evidence 引用、Patch 安全与 Verification 绑定校验，再从同一个 `CapsuleDetail` 确定性渲染报告并计算独立 SHA-256。报告中的归档 SHA-256 始终指向生成它的权威 `.bugcapsule` 字节。

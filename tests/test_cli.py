@@ -13,6 +13,7 @@ from bugcapsule.config import get_settings
 from bugcapsule.demo.controller import DemoControlError, DemoRunResult
 from bugcapsule.index import CapsuleIndexError
 from bugcapsule.patching.service import PatchGenerationError
+from bugcapsule.reporting.service import HtmlReport, HtmlReportError
 from bugcapsule.verification.service import VerificationError
 
 runner = CliRunner()
@@ -274,6 +275,54 @@ def test_verify_command_requires_explicit_approval_and_emits_artifact(
     )
     assert failed.exit_code == 1
     assert "验证失败" in failed.stderr
+
+
+def test_report_command_writes_deterministic_html_and_refuses_implicit_overwrite(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rendered = HtmlReport(
+        capsule_id="cap_stage3_0001",
+        filename="cap_stage3_0001-verification-report.html",
+        content=b"<!doctype html><title>verified</title>\n",
+        sha256="a" * 64,
+    )
+
+    class FakeReportService:
+        def render(self, capsule_id: str) -> HtmlReport:
+            assert capsule_id == "cap_stage3_0001"
+            return rendered
+
+    monkeypatch.setattr("bugcapsule.cli.HtmlReportService", lambda _: FakeReportService())
+    destination = tmp_path / "report.html"
+    first = runner.invoke(
+        app,
+        ["report", "cap_stage3_0001", "--output", str(destination)],
+    )
+    refused = runner.invoke(
+        app,
+        ["report", "cap_stage3_0001", "--output", str(destination)],
+    )
+    overwritten = runner.invoke(
+        app,
+        ["report", "cap_stage3_0001", "--output", str(destination), "--force"],
+    )
+
+    assert first.exit_code == 0
+    assert destination.read_bytes() == rendered.content
+    assert rendered.sha256 in first.stdout
+    assert refused.exit_code == 1
+    assert "已存在" in refused.stderr
+    assert overwritten.exit_code == 0
+
+    class FailingReportService:
+        def render(self, capsule_id: str) -> HtmlReport:
+            raise HtmlReportError(f"not ready: {capsule_id}")
+
+    monkeypatch.setattr("bugcapsule.cli.HtmlReportService", lambda _: FailingReportService())
+    failed = runner.invoke(app, ["report", "cap_stage3_0001"])
+    assert failed.exit_code == 1
+    assert "报告生成失败" in failed.stderr
 
 
 def test_index_and_capsule_query_commands_emit_deterministic_json(

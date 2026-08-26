@@ -107,7 +107,7 @@
     {% endif %}
     {% if detail.verification %}
     <section class="section-block" id="verification" aria-labelledby="verification-title">
-      <div class="section-heading"><div><p class="section-kicker">隔离回归</p><h2 id="verification-title">修复前后对比</h2><p>同一固定命令在两个只读、无网络的 Docker 临时副本中运行。</p></div>{{ status_badge(detail.verification.run.status) }}</div>
+      <div class="section-heading"><div><p class="section-kicker">隔离回归</p><h2 id="verification-title">修复前后对比</h2><p>同一固定命令在两个只读、无网络的 Docker 临时副本中运行。</p></div><div class="section-actions">{{ status_badge(detail.verification.run.status) }}<a class="btn btn-secondary" href="/capsules/{{ detail.summary.capsule_id }}/report">{{ icon('download') }}下载 HTML 报告</a></div></div>
       <div class="verification-grid">
         <article class="verification-result is-before"><header><span>修复前</span><strong>退出码 {{ detail.verification.run.before.exit_code }}</strong></header><dl><div><dt>耗时</dt><dd>{{ detail.verification.run.before.duration_ms }} ms</dd></div><div><dt>超时</dt><dd>{{ '是' if detail.verification.run.before.timed_out else '否' }}</dd></div></dl><details><summary>查看脱敏原始输出</summary><pre><code>{{ detail.verification_before_log }}</code></pre></details></article>
         <article class="verification-result is-after"><header><span>应用 Patch 后</span><strong>退出码 {{ detail.verification.run.after.exit_code }}</strong></header><dl><div><dt>耗时</dt><dd>{{ detail.verification.run.after.duration_ms }} ms</dd></div><div><dt>超时</dt><dd>{{ '是' if detail.verification.run.after.timed_out else '否' }}</dd></div></dl><details><summary>查看脱敏原始输出</summary><pre><code>{{ detail.verification_after_log }}</code></pre></details></article>

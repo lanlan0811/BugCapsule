@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">
+  <title>{{ detail.summary.capsule_id }} · BugCapsule 验证报告</title>
+  <style>
+    :root{--blue:#2a52a0;--blue-dark:#15294a;--ink:#15181e;--muted:#4f5563;--line:#d8dce3;--surface:#f6f7f9;--card:#fff;--success:#1f7a3e;--success-bg:#ecf9f1;--error:#9e2424;--error-bg:#fdecec;--warning:#764a08;--mono:SFMono-Regular,Consolas,"Liberation Mono",monospace;--sans:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif}
+    *{box-sizing:border-box}html{background:var(--surface);color:var(--ink);font:14px/1.55 var(--sans)}body{max-width:1120px;margin:0 auto;padding:32px}h1,h2,h3,p{margin-top:0}h1{margin-bottom:6px;font-size:24px;line-height:1.25}h2{font-size:18px}h3{font-size:14px}code,pre{font-family:var(--mono)}code{overflow-wrap:anywhere}.report-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:16px;color:var(--blue-dark);font-weight:700}.brand svg{width:26px;height:26px;fill:none;stroke:var(--blue);stroke-width:2}.subtitle,.muted{color:var(--muted)}.status{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;color:#fff;background:var(--success);border-radius:999px;font-weight:600;white-space:nowrap}.status.failed{background:var(--error)}.status svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}.section{margin-bottom:20px;padding:20px;background:var(--card);border:1px solid var(--line);border-radius:6px;box-shadow:0 1px 2px rgba(21,24,30,.06)}.section-title{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:16px;border-bottom:1px solid var(--line)}.section-title p{margin-bottom:12px}.eyebrow{margin-bottom:2px;color:var(--blue);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.fact{padding:12px;background:var(--surface);border-radius:4px}.fact span{display:block;margin-bottom:2px;color:var(--muted);font-size:12px}.fact strong,.fact code{font-weight:600}.identifier{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}.identifier:last-child{border-bottom:0}.identifier span{color:var(--muted)}.chain{margin:0;padding:0;list-style:none}.chain li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.chain li:last-child{border-bottom:0}.sequence{display:flex;width:30px;height:30px;align-items:center;justify-content:center;color:var(--blue);border:2px solid var(--blue);border-radius:50%;font:700 12px/1 var(--mono)}.chain-head,.candidate-head,.test-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}.kind{padding:2px 7px;background:#eceef2;border-radius:2px;font-size:12px}.evidence-id{color:var(--blue);font-weight:600}.relation{color:var(--muted);font-size:12px}.candidate{margin-bottom:12px;padding:16px;border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:4px}.candidate:last-child{margin-bottom:0}.rank{padding:4px 8px;color:#fff;background:var(--blue);border-radius:999px;font:700 12px/1 var(--mono)}.confidence{color:var(--blue);font-weight:700}.references,.checks,.files{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;padding:0;list-style:none}.references code,.checks code,.files code{padding:3px 7px;background:var(--surface);border:1px solid var(--line);border-radius:2px}.checks code{color:var(--success)}pre{max-width:100%;margin:12px 0 0;padding:14px;overflow:auto;color:#f6f7f9;background:#15181e;border-radius:4px;white-space:pre-wrap;overflow-wrap:anywhere}.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.test{padding:16px;border:1px solid var(--line);border-radius:4px}.test.before{border-left:3px solid var(--error)}.test.after{border-left:3px solid var(--success)}.exit-fail{color:var(--error)}.exit-pass{color:var(--success)}.test dl{display:flex;flex-wrap:wrap;gap:16px;margin:10px 0}.test dl div{display:flex;gap:5px}.test dt{color:var(--muted)}.test dd{margin:0}.binding{margin-top:14px;padding:14px;background:var(--surface);border-radius:4px}.disclosure{padding:12px;color:var(--warning);background:#fef8eb;border-left:3px solid #95640a}.footer{display:flex;justify-content:space-between;gap:16px;color:var(--muted);font-size:12px}.footer code{color:var(--ink)}
+    @media(max-width:720px){body{padding:12px}.report-header,.section-title{display:grid}.facts,.compare{grid-template-columns:1fr}.identifier{grid-template-columns:1fr}.footer{display:grid}.section{padding:14px}}
+    @media print{@page{size:A4;margin:14mm}html{background:#fff;font-size:10pt}body{max-width:none;padding:0}.section{box-shadow:none;break-inside:avoid}.report-header{break-after:avoid}pre{max-height:none}.no-print{display:none}}
+  </style>
+</head>
+<body>
+  <header class="report-header">
+    <div>
+      <div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 4.2a5.4 5.4 0 0 1 7.6 7.6l-4 4a5.4 5.4 0 0 1-7.6-7.6z"/><path d="m8 8 8 8"/></svg><span>BugCapsule v{{ version }}</span></div>
+      <p class="eyebrow">Verification report</p>
+      <h1>{{ detail.summary.fault_type }}</h1>
+      <p class="subtitle">{{ detail.summary.fault_summary }}</p>
+    </div>
+    <span class="status {{ 'failed' if detail.verification.run.status == 'failed' else '' }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>{{ '验证通过' if detail.verification.run.status == 'passed' else '验证失败' }}</span>
+  </header>
+
+  <section class="section">
+    <div class="section-title"><div><p class="eyebrow">Summary</p><h2>故障与运行上下文</h2></div><p>事实截止：{{ report_completed_at|datetime }}</p></div>
+    <div class="facts">
+      <div class="fact"><span>服务</span><strong>{{ detail.summary.service_name }}</strong></div>
+      <div class="fact"><span>入口</span><code>{{ detail.summary.entrypoint }}</code></div>
+      <div class="fact"><span>捕获时间</span><strong>{{ detail.summary.created_at|datetime }}</strong></div>
+      <div class="fact"><span>Git 分支</span><code>{{ detail.summary.git_branch }}</code></div>
+      <div class="fact"><span>工作区</span><strong>{{ '有未提交修改' if detail.summary.git_dirty else '干净' }}</strong></div>
+      <div class="fact"><span>运行平台</span><strong>{{ detail.manifest.environment.platform }} · Python {{ detail.manifest.environment.python_version }}</strong></div>
+    </div>
+    <div class="identifier"><span>Capsule ID</span><code>{{ detail.summary.capsule_id }}</code></div>
+    <div class="identifier"><span>Trace ID</span><code>{{ detail.summary.trace_id }}</code></div>
+    <div class="identifier"><span>Root Span ID</span><code>{{ detail.summary.root_span_id }}</code></div>
+    <div class="identifier"><span>Git Commit</span><code>{{ detail.summary.git_commit_sha }}</code></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><div><p class="eyebrow">Evidence chain</p><h2>确定性证据链</h2></div><p>{{ detail.summary.evidence_count }} 条已校验证据</p></div>
+    <ol class="chain">
+      {% for entry in timeline %}
+      <li><span class="sequence">{{ entry.sequence }}</span><div><div class="chain-head"><div><span class="kind">{{ entry.kind_label }}</span> <code class="evidence-id">{{ entry.evidence.evidence_id }}</code></div><time>{{ entry.evidence.captured_at|datetime }}</time></div><h3>{{ entry.title }}</h3><div class="relation">{{ entry.relation_label }}{% if entry.related_evidence_id %} · <code>{{ entry.related_evidence_id }}</code>{% endif %} · <code>{{ entry.evidence.source }}</code></div></div></li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><div><p class="eyebrow">Root cause</p><h2>证据约束的根因候选</h2></div><p>{{ detail.analysis.mode }} · {{ detail.analysis.provider }} / {{ detail.analysis.model }}</p></div>
+    {% for candidate in detail.analysis.root_causes %}
+    <article class="candidate"><div class="candidate-head"><div><span class="rank">#{{ candidate.rank }}</span> <code>{{ candidate.root_cause_id }}</code></div><span class="confidence">{{ (candidate.confidence * 100)|round|int }}% 置信度</span></div><p>{{ candidate.hypothesis }}</p><div class="relation">证据引用</div><div class="references">{% for evidence_id in candidate.evidence_refs %}<code>{{ evidence_id }}</code>{% endfor %}</div>{% if candidate.unknowns %}<div class="relation">未知项：{{ candidate.unknowns|join('；') }}</div>{% endif %}</article>
+    {% endfor %}
+    <div class="identifier"><span>分析请求 SHA-256</span><code>{{ detail.analysis.request_sha256 }}</code></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><div><p class="eyebrow">Patch</p><h2>已通过确定性安全检查</h2></div><code>{{ detail.patch.candidate.patch_id }}</code></div>
+    <p>{{ detail.patch.candidate.summary }}</p>
+    <div class="identifier"><span>关联 Root Cause</span><code>{{ detail.patch.candidate.root_cause_id }}</code></div>
+    <div class="identifier"><span>Patch SHA-256</span><code>{{ detail.patch.candidate.sha256 }}</code></div>
+    <div class="identifier"><span>Patch 请求 SHA-256</span><code>{{ detail.patch.request_sha256 }}</code></div>
+    <div class="relation">修改文件</div><div class="files">{% for path in detail.patch.candidate.modified_files %}<code>{{ path }}</code>{% endfor %}</div>
+    <div class="relation">安全检查</div><div class="checks">{% for check in detail.patch.candidate.safety_checks %}<code>{{ check }}</code>{% endfor %}</div>
+    <pre aria-label="Canonical unified diff">{{ detail.patch_diff }}</pre>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><div><p class="eyebrow">Isolated regression</p><h2>修复前后对比</h2></div><code>{{ detail.verification.run.verification_id }}</code></div>
+    <div class="compare">
+      <article class="test before"><div class="test-head"><h3>修复前</h3><strong class="exit-fail">退出码 {{ detail.verification.run.before.exit_code }}</strong></div><dl><div><dt>耗时</dt><dd>{{ detail.verification.run.before.duration_ms }} ms</dd></div><div><dt>超时</dt><dd>{{ '是' if detail.verification.run.before.timed_out else '否' }}</dd></div></dl><div class="identifier"><span>输出 SHA-256</span><code>{{ detail.verification.run.before.output_sha256 }}</code></div><pre>{{ detail.verification_before_log }}</pre></article>
+      <article class="test after"><div class="test-head"><h3>应用 Patch 后</h3><strong class="{{ 'exit-pass' if detail.verification.run.after.exit_code == 0 else 'exit-fail' }}">退出码 {{ detail.verification.run.after.exit_code }}</strong></div><dl><div><dt>耗时</dt><dd>{{ detail.verification.run.after.duration_ms }} ms</dd></div><div><dt>超时</dt><dd>{{ '是' if detail.verification.run.after.timed_out else '否' }}</dd></div></dl><div class="identifier"><span>输出 SHA-256</span><code>{{ detail.verification.run.after.output_sha256 }}</code></div><pre>{{ detail.verification_after_log }}</pre></article>
+    </div>
+    <div class="binding"><strong>批准绑定</strong><div class="identifier"><span>Patch ID</span><code>{{ detail.verification.run.patch_id }}</code></div><div class="identifier"><span>批准 SHA-256</span><code>{{ detail.verification.run.approved_sha256 }}</code></div><div class="identifier"><span>验证镜像</span><code>{{ detail.verification.image }}</code></div><div class="identifier"><span>固定命令 ID</span><code>{{ detail.verification.command_id }}</code></div><div class="identifier"><span>执行区间</span><span>{{ detail.verification.started_at|datetime }} — {{ detail.verification.completed_at|datetime }}</span></div></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><div><p class="eyebrow">Integrity</p><h2>完整性与脱敏</h2></div><p>Schema {{ detail.manifest.schema_version }}</p></div>
+    <div class="identifier"><span>胶囊归档 SHA-256</span><code>{{ detail.summary.archive_sha256 }}</code></div>
+    <div class="identifier"><span>胶囊归档大小</span><span>{{ detail.summary.archive_size|bytes }}（{{ detail.summary.archive_size }} B）</span></div>
+    <div class="identifier"><span>载荷文件</span><span>{{ detail.manifest.files|length }} 个</span></div>
+    <div class="identifier"><span>捕获脱敏发现</span><span>{{ detail.redaction_report.total_findings }} 项</span></div>
+    <p class="disclosure">本报告仅包含胶囊内已校验、已脱敏的仿真数据；模型结论、Patch 与验证结果均保留稳定 ID 和 SHA-256 绑定。</p>
+  </section>
+
+  <footer class="footer"><span>BugCapsule {{ version }} · 自包含 HTML，可离线查看与打印</span><code>{{ detail.summary.capsule_id }}</code></footer>
+</body>
+</html>

@@ -31,6 +31,11 @@ from bugcapsule.patching.service import (
     PatchGenerationError,
     PatchGenerationService,
 )
+from bugcapsule.reporting.service import (
+    HtmlReportError,
+    HtmlReportNotFoundError,
+    HtmlReportService,
+)
 from bugcapsule.verification.service import VerificationError, VerificationService
 from bugcapsule.web.imports import CapsuleImportError, CapsuleUploadService
 from bugcapsule.web.viewmodels import (
@@ -69,6 +74,7 @@ def create_app(
     analysis_service: AnalysisService | None = None,
     patch_service: PatchGenerationService | None = None,
     verification_service: VerificationService | None = None,
+    report_service: HtmlReportService | None = None,
 ) -> FastAPI:
     """Build the local-only API and server-rendered Web application."""
     runtime_settings = settings or get_settings()
@@ -200,6 +206,29 @@ def create_app(
             detail.archive_path,
             media_type="application/vnd.bugcapsule+zip",
             filename=detail.archive_path.name,
+        )
+
+    @application.get("/capsules/{capsule_id}/report", tags=["reports"])
+    def download_report(capsule_id: str) -> Response:
+        runtime.ensure_index()
+        try:
+            report = (report_service or HtmlReportService(runtime_settings, index=index)).render(
+                capsule_id
+            )
+        except HtmlReportNotFoundError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        except HtmlReportError as exc:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        return Response(
+            content=report.content,
+            media_type="text/html; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="{report.filename}"',
+                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+                "Cache-Control": "no-store",
+                "X-Content-Type-Options": "nosniff",
+                "X-BugCapsule-Report-SHA256": report.sha256,
+            },
         )
 
     @application.get("/capsules/{capsule_id}", response_class=HTMLResponse, tags=["capsules"])

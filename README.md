@@ -150,6 +150,14 @@ uv run bugcapsule verify <capsule-id> `
 
 三项批准值必须同时匹配胶囊当前 Patch，失败时不会准备镜像或执行命令。验证器复制两个临时工作区，只把 Patch 应用于 after 副本；两个副本都以只读 bind mount 进入非 root Docker 容器，容器无网络、无 capabilities、启用 `no-new-privileges` 并限制 CPU、内存、PID、临时目录和超时。验证命令来自 `BUGCAPSULE_VERIFICATION_COMMAND`，不接受模型提供的命令。修复前后原始输出经过脱敏后连同退出码、耗时和 SHA-256 写回胶囊，主源码文件会在验证前后做哈希对照。
 
+验证完成后，可从详情页下载自包含 HTML 报告，或通过 CLI 写入指定位置：
+
+```powershell
+uv run bugcapsule report <capsule-id> --output .\verification-report.html
+```
+
+报告只从重新校验后的 `CapsuleDetail` 生成，包含证据链、根因候选、canonical unified diff、安全检查、批准绑定、修复前后脱敏输出及归档完整性。它不加载外部脚本、样式、字体或图片，可断网查看和打印；默认拒绝覆盖现有文件，确需覆盖时显式传入 `--force`。
+
 ## 质量检查
 
 ```powershell

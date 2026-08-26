@@ -82,7 +82,12 @@ def test_capsule_detail_renders_evidence_and_downloads_exact_archive(tmp_path: P
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             detail = await client.get("/capsules/cap_stage3_0001")
             download = await client.get("/capsules/cap_stage3_0001/download")
+            unavailable_report = await client.get("/capsules/cap_stage3_0001/report")
             missing = await client.get("/capsules/cap_missing")
+            missing_report = await client.get("/capsules/cap_missing/report")
+        assert unavailable_report.status_code == 409
+        assert "模型分析" in unavailable_report.text
+        assert missing_report.status_code == 404
         return detail, download, missing
 
     detail, download, missing = asyncio.run(request_detail())
@@ -198,7 +203,7 @@ def test_web_renders_and_rechecks_explicit_verification_approval(tmp_path: Path)
     )
     application = create_app(settings, index, verification_service=service)
 
-    async def request_verification() -> tuple[httpx.Response, httpx.Response, httpx.Response]:
+    async def request_verification() -> tuple[httpx.Response, ...]:
         transport = httpx.ASGITransport(app=application)
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             detail = await client.get("/capsules/cap_stage3_0001")
@@ -221,9 +226,10 @@ def test_web_renders_and_rechecks_explicit_verification_approval(tmp_path: Path)
                 headers={"Origin": "http://testserver"},
                 follow_redirects=False,
             )
-        return detail, rejected, approved
+            report = await client.get("/capsules/cap_stage3_0001/report")
+        return detail, rejected, approved, report
 
-    detail, rejected, approved = asyncio.run(request_verification())
+    detail, rejected, approved, report = asyncio.run(request_verification())
     assert detail.status_code == 200
     assert "修复前后对比" in detail.text
     assert "退出码 1" in detail.text
@@ -234,6 +240,14 @@ def test_web_renders_and_rechecks_explicit_verification_approval(tmp_path: Path)
     assert "approved SHA-256" in rejected.text
     assert approved.status_code == 303
     assert approved.headers["location"] == "/capsules/cap_stage3_0001#verification"
+    assert report.status_code == 200
+    assert report.headers["content-disposition"] == (
+        'attachment; filename="cap_stage3_0001-verification-report.html"'
+    )
+    assert report.headers["x-content-type-options"] == "nosniff"
+    assert report.headers["x-bugcapsule-report-sha256"]
+    assert "修复前后对比" in report.text
+    assert "user@example.com" not in report.text
 
 
 def test_capsule_import_validates_deduplicates_and_rejects_conflict(tmp_path: Path) -> None:

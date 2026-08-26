@@ -1,6 +1,7 @@
 """Command-line entry point for BugCapsule."""
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Annotated, Literal, cast
 
 import typer
@@ -16,6 +17,7 @@ from bugcapsule.demo.config import DemoSettings
 from bugcapsule.demo.controller import DemoControlError, DemoController, DemoRunResult
 from bugcapsule.index import CapsuleIndex, CapsuleIndexError
 from bugcapsule.patching.service import PatchGenerationError, PatchGenerationService
+from bugcapsule.reporting.service import HtmlReportError, HtmlReportService
 from bugcapsule.verification.service import VerificationError, VerificationService
 
 app = typer.Typer(
@@ -152,6 +154,34 @@ def verify(
         typer.echo(f"验证失败：{exc}", err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(canonical_json(artifact.model_dump(mode="json")).decode("utf-8"))
+
+
+@app.command()
+def report(
+    capsule_id: str,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="HTML 报告输出路径；默认写入当前目录。"),
+    ] = None,
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="允许覆盖已存在的报告文件。"),
+    ] = False,
+) -> None:
+    """从胶囊内已校验事实生成自包含 HTML 前后对比报告。"""
+    try:
+        rendered = HtmlReportService(get_settings()).render(capsule_id)
+        destination = (output or Path(rendered.filename)).resolve()
+        if not destination.parent.is_dir():
+            raise HtmlReportError(f"输出目录不存在：{destination.parent}")
+        if destination.exists() and not force:
+            raise HtmlReportError(f"输出文件已存在：{destination}")
+        destination.write_bytes(rendered.content)
+    except (HtmlReportError, OSError) as exc:
+        typer.echo(f"报告生成失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"报告已写入：{destination}")
+    typer.echo(f"SHA-256：{rendered.sha256}")
 
 
 @index_app.command("rebuild")
