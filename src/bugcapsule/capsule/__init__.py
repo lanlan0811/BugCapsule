@@ -1,6 +1,15 @@
 """Public types and validation helpers for the open capsule format."""
 
-from bugcapsule.capsule.identifiers import canonical_json, stable_identifier
+from bugcapsule.capsule.archive import (
+    ArchiveLimits,
+    CapsuleArchive,
+    CapsuleArchiveError,
+    CapsuleIntegrityError,
+    CapsuleSecurityError,
+    ImportedCapsule,
+    create_manifest,
+)
+from bugcapsule.capsule.identifiers import canonical_json, sha256_hex, stable_identifier
 from bugcapsule.capsule.redaction import RedactionResult, RedactionRule, Redactor
 from bugcapsule.capsule.schema import (
     CapsuleFile,
@@ -22,13 +31,19 @@ from bugcapsule.capsule.schema import (
 )
 
 __all__ = [
+    "ArchiveLimits",
+    "CapsuleArchive",
+    "CapsuleArchiveError",
     "CapsuleFile",
+    "CapsuleIntegrityError",
     "CapsuleManifest",
+    "CapsuleSecurityError",
     "EnvironmentInfo",
     "EvidenceItem",
     "EvidenceKind",
     "EvidenceReferenceError",
     "GitInfo",
+    "ImportedCapsule",
     "PatchCandidate",
     "RedactionFinding",
     "RedactionReport",
@@ -41,6 +56,8 @@ __all__ = [
     "TraceInfo",
     "VerificationRun",
     "canonical_json",
+    "create_manifest",
+    "sha256_hex",
     "stable_identifier",
     "validate_evidence_references",
 ]

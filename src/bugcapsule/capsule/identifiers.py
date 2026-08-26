@@ -24,3 +24,8 @@ def stable_identifier(prefix: str, value: Any, *, digest_length: int = 12) -> st
         raise ValueError("digest_length must be between 8 and 64")
     digest = hashlib.sha256(canonical_json(value)).hexdigest().upper()
     return f"{prefix.upper()}-{digest[:digest_length]}"
+
+
+def sha256_hex(value: bytes) -> str:
+    """Return a lowercase SHA-256 digest for immutable capsule bytes."""
+    return hashlib.sha256(value).hexdigest()
