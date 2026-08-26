@@ -159,6 +159,7 @@ def test_index_and_capsule_query_commands_emit_deterministic_json(
                 "query": "demo",
                 "analysis_status": "not_run",
                 "verification_status": None,
+                "sort_by": "time",
                 "limit": 5,
             }
             return (JsonResult({"capsule_id": "cap_stage3_0001"}),)

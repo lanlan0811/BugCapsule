@@ -1,0 +1,30 @@
+{% macro icon(name, class_name='icon') -%}
+<svg class="{{ class_name }}" aria-hidden="true"><use href="#icon-{{ name }}"></use></svg>
+{%- endmacro %}
+
+{% macro status_badge(status, size='') -%}
+{% set labels = {
+  'completed': '已完成', 'passed': '验证通过', 'failed': '失败', 'running': '进行中',
+  'not_run': '未开始', 'live': 'live · 实时', 'replay': 'replay · 回放', 'off': 'off · 未调用模型'
+} %}
+{% set icons = {
+  'completed': 'check', 'passed': 'check', 'failed': 'cross', 'running': 'clock',
+  'not_run': 'minus', 'live': 'activity', 'replay': 'replay', 'off': 'power'
+} %}
+{% set form = 'solid' if status in ['completed', 'passed'] else ('outlined' if status in ['live', 'running'] else 'dashed') %}
+<span class="sbadge {{ form }} status-{{ status }} {{ size }}">{{ icon(icons.get(status, 'info')) }}{{ labels.get(status, status) }}</span>
+{%- endmacro %}
+
+{% macro identifier(label, value, compact=true) -%}
+<div class="identifier" data-identifier>
+  <span class="identifier-label">{{ label }}</span>
+  <code class="id-value" data-id-value data-full="{{ value }}" data-short="{{ value|short_id }}">{{ value|short_id if compact else value }}</code>
+  {% if compact and value|length > 8 %}<button class="id-toggle" type="button" data-id-toggle>展开</button>{% endif %}
+  <button class="id-copy" type="button" data-copy-value="{{ value }}">{{ icon('copy') }}<span>复制</span></button>
+</div>
+{%- endmacro %}
+
+{% macro evidence_ref(item, title='') -%}
+<a class="ev-ref" href="#evidence-{{ item.evidence_id }}" title="{{ title or item.source }}">{{ item.evidence_id }}</a>
+{%- endmacro %}
+

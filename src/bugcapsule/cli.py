@@ -96,6 +96,10 @@ def capsules_list(
         str | None,
         typer.Option("--verification-status", help="按验证状态精确筛选。"),
     ] = None,
+    sort_by: Annotated[
+        str,
+        typer.Option("--sort", help="排序方式：time 或 status。"),
+    ] = "time",
     limit: Annotated[int, typer.Option("--limit", min=1, max=500)] = 100,
 ) -> None:
     """以确定性 JSON 输出胶囊摘要。"""
@@ -104,6 +108,7 @@ def capsules_list(
             query=query,
             analysis_status=analysis_status,
             verification_status=verification_status,
+            sort_by=sort_by,
             limit=limit,
         )
     except CapsuleIndexError as exc:

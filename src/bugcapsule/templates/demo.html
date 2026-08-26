@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "macros/components.html" import icon, status_badge %}
+{% block title %}演示控制 · BugCapsule{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div><p class="eyebrow">确定性故障场景</p><h1>演示控制</h1><p class="page-description">FastAPI + PostgreSQL 数据库连接池耗尽。所有数据均为仿真数据。</p></div>
+  {{ status_badge('not_run', 'md') }}
+</header>
+<div class="demo-grid">
+  <section class="card">
+    <div class="section-heading">{{ icon('terminal') }}<div><h2>启动与复现</h2><p>命令会重置环境，再稳定触发两次泄漏和一次池耗尽。</p></div></div>
+    <pre class="command-block"><code>bugcapsule demo up</code></pre>
+    <div class="demo-actions">
+      <button class="btn btn-primary" type="button" hx-post="/demo/run" hx-target="#demo-result" hx-disabled-elt="this">{{ icon('activity') }}触发故障</button>
+      <button class="btn btn-secondary" type="button" hx-post="/demo/reset" hx-target="#demo-result" hx-disabled-elt="this">{{ icon('replay') }}重置演示</button>
+      <span class="htmx-indicator">正在执行</span>
+    </div>
+    <div id="demo-result" class="demo-result" aria-live="polite"></div>
+    <ol class="demo-sequence">
+      <li><span>1</span><div><strong>第一次泄漏请求</strong><code>HTTP 500 · injected_request_failure</code></div></li>
+      <li><span>2</span><div><strong>第二次泄漏请求</strong><code>HTTP 500 · injected_request_failure</code></div></li>
+      <li><span>3</span><div><strong>连接池耗尽</strong><code>HTTP 503 · database_pool_exhausted</code></div></li>
+    </ol>
+  </section>
+  <aside class="card context-card">
+    <h2>环境约束</h2>
+    <dl class="facts"><div><dt>监听范围</dt><dd><code>127.0.0.1</code></dd></div><div><dt>数据库</dt><dd>PostgreSQL</dd></div><div><dt>pool_size</dt><dd><code>2</code></dd></div><div><dt>max_overflow</dt><dd><code>0</code></dd></div></dl>
+    <div class="notice notice-info">{{ icon('info') }}<div><strong>Docker 环境必需</strong><p>先运行 <code>bugcapsule demo up</code>，再使用左侧控制按钮。</p></div></div>
+    <a class="btn btn-secondary" href="/capsules">{{ icon('list') }}查看故障列表</a>
+  </aside>
+</div>
+{% endblock %}

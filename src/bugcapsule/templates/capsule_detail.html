@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "macros/components.html" import icon, status_badge, identifier, evidence_ref %}
+{% block title %}{{ detail.summary.capsule_id }} · BugCapsule{% endblock %}
+{% block content %}
+<header class="detail-header" id="summary">
+  <div>
+    <a class="back-link" href="/capsules">故障列表 /</a>
+    <p class="eyebrow">胶囊详情</p>
+    <h1>{{ detail.summary.fault_type }}</h1>
+    <p class="page-description">{{ detail.summary.fault_summary }}</p>
+  </div>
+  <div class="detail-statuses">{{ status_badge(detail.summary.analysis_status, 'md') }}{{ status_badge(detail.summary.verification_status, 'md') }}</div>
+</header>
+
+{{ identifier('capsule_id', detail.summary.capsule_id, false) }}
+
+<nav class="detail-tabs" aria-label="胶囊详情区块">
+  <a href="#summary">摘要</a><a href="#evidence">证据链</a><a href="#analysis">根因候选</a><a href="#patch">Patch</a><a href="#verification">验证</a>
+</nav>
+
+<ol class="flow" aria-label="调试闭环进度">
+{% for step in flow_steps %}
+  <li class="flow-step is-{{ step.state }}"><a href="#{{ step.anchor }}"><span class="flow-marker">{% if step.state == 'completed' %}{{ icon('check') }}{% else %}{{ loop.index }}{% endif %}</span><span><strong>{{ step.label }}</strong><small>{{ step.note }}</small></span></a></li>
+{% endfor %}
+</ol>
+
+<div class="detail-grid">
+  <div class="detail-main">
+    <section class="card request-card" aria-labelledby="request-title">
+      <div class="section-heading"><div><p class="section-kicker">故障请求</p><h2 id="request-title"><code>{{ detail.summary.entrypoint }}</code></h2></div><span class="evidence-count">{{ detail.summary.evidence_count }} 条证据</span></div>
+      <div class="request-facts"><div><span>服务</span><strong>{{ detail.summary.service_name }}</strong></div><div><span>异常标识</span><code>{{ detail.summary.fault_type }}</code></div><div><span>候选源码</span><strong>{{ detail.summary.candidate_source_count }} 处</strong></div><div><span>捕获时间</span><time datetime="{{ detail.summary.created_at.isoformat() }}">{{ detail.summary.created_at|datetime }}</time></div></div>
+    </section>
+
+    <section class="section-block" id="evidence" aria-labelledby="evidence-title">
+      <div class="section-heading"><div><p class="section-kicker">确定性关联</p><h2 id="evidence-title">证据链时间线</h2><p>按捕获时间、证据类型与稳定 Evidence ID 排序；连线来自 Trace/Span 关系。</p></div>{{ icon('trace', 'section-icon') }}</div>
+      <ol class="timeline">
+      {% for node in timeline %}
+        <li class="timeline-node {{ 'is-error' if node.is_error else '' }}" id="evidence-{{ node.evidence.evidence_id }}">
+          <span class="timeline-dot">{{ loop.index }}</span>
+          <article>
+            <header><div><span class="kind-label">{{ node.kind_label }}</span>{{ evidence_ref(node.evidence, node.title) }}</div><time datetime="{{ node.evidence.captured_at.isoformat() }}">{{ node.evidence.captured_at|datetime }}</time></header>
+            <h3>{{ node.title }}</h3>
+            <div class="relation"><span>{{ node.relation_label }}</span>{% if node.related_evidence_id %}<code>{{ node.related_evidence_id }}</code>{% endif %}<span class="source-label">{{ node.evidence.source }}</span></div>
+            <details><summary>查看完整证据</summary><pre><code>{{ node.content_json }}</code></pre></details>
+          </article>
+        </li>
+      {% endfor %}
+      </ol>
+    </section>
+
+    {% if logs %}
+    <section class="section-block" aria-labelledby="logs-title">
+      <div class="section-heading"><div><p class="section-kicker">Trace Context</p><h2 id="logs-title">日志流</h2></div></div>
+      <div class="lv">
+        <div class="lv-toolbar"><div class="lv-filter"><button class="lv-toggle is-info" type="button" aria-pressed="true" data-log-level="INFO">INFO</button><button class="lv-toggle is-warn" type="button" aria-pressed="true" data-log-level="WARNING">WARNING</button><button class="lv-toggle is-err" type="button" aria-pressed="true" data-log-level="ERROR">ERROR</button></div><span class="lv-spacer"></span><span class="log-count">{{ logs|length }} 条</span></div>
+        <div class="lv-body">
+        {% for log in logs %}
+          <div class="lv-row {{ 'is-error' if log.level in ['ERROR', 'CRITICAL'] else '' }}" data-log-row="{{ log.level }}"><time class="lv-ts">{{ log.captured_at|datetime }}</time><span class="lv-lvl {{ 'err' if log.level in ['ERROR', 'CRITICAL'] else ('warn' if log.level == 'WARNING' else 'info') }}">{% if log.level in ['ERROR', 'CRITICAL'] %}{{ icon('warning') }}{% endif %}{{ log.level }}</span><span class="lv-trace" title="{{ log.trace_id }}">{{ log.trace_id|short_id }}</span><span class="lv-span" title="{{ log.span_id }}">{{ log.span_id|short_id }}</span><span class="lv-msg">{{ log.message }} {{ evidence_ref(log.evidence) }}</span></div>
+        {% endfor %}
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    {% if sources %}
+    <section class="section-block" aria-labelledby="source-title">
+      <div class="section-heading"><div><p class="section-kicker">候选代码区域</p><h2 id="source-title">源码窗口</h2></div>{{ icon('code', 'section-icon') }}</div>
+      {% for source in sources %}
+      <article class="source-view"><header><code>{{ source.path }}</code>{{ evidence_ref(source.evidence) }}</header><div class="source-body">{% for line in source.lines %}<div class="source-line {{ 'is-focus' if line.is_focus else '' }}"><span>{{ line.number }}</span><code>{{ line.text }}</code></div>{% endfor %}</div></article>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    <section class="section-block placeholder-section" id="analysis"><div class="section-heading"><div><p class="section-kicker">根因候选</p><h2>未调用模型</h2></div>{{ status_badge(detail.summary.analysis_status) }}</div><p>当前页面仅展示确定性证据。模型分析尚未运行，因此没有根因结论或证据引用。</p></section>
+    <section class="section-block placeholder-section" id="patch"><div class="section-heading"><div><p class="section-kicker">Patch</p><h2>尚无修复建议</h2></div>{{ status_badge('not_run') }}</div><p>生成 Patch 前必须先完成带有效 Evidence ID 引用的根因分析。</p></section>
+    <section class="section-block placeholder-section" id="verification"><div class="section-heading"><div><p class="section-kicker">隔离回归</p><h2>验证未开始</h2></div>{{ status_badge(detail.summary.verification_status) }}</div><p>验证需要已批准的 Patch SHA-256；当前主仓库未被修改。</p></section>
+  </div>
+
+  <aside class="detail-aside">
+    <section class="card sticky-card"><h2>上下文</h2><dl class="facts"><div><dt>Git 分支</dt><dd><code>{{ detail.summary.git_branch }}</code></dd></div><div><dt>工作区</dt><dd>{{ '有未提交变更' if detail.summary.git_dirty else '干净' }}</dd></div><div><dt>Python</dt><dd><code>{{ detail.manifest.environment.python_version }}</code></dd></div><div><dt>平台</dt><dd>{{ detail.manifest.environment.platform }}</dd></div></dl>{{ identifier('Git SHA', detail.summary.git_commit_sha) }}{{ identifier('trace_id', detail.summary.trace_id) }}{{ identifier('root_span_id', detail.summary.root_span_id) }}</section>
+    <section class="card"><div class="section-heading compact"><h2>脱敏报告</h2>{{ status_badge(detail.summary.redaction_status) }}</div><div class="metric"><strong>{{ detail.summary.redaction_finding_count }}</strong><span>项敏感内容已替换</span></div><p class="muted">规则版本 <code>{{ detail.redaction_report.rule_version }}</code>，报告与胶囊清单一同完成校验。</p></section>
+    <section class="card"><h2>完整性</h2><dl class="facts"><div><dt>归档大小</dt><dd>{{ detail.summary.archive_size|bytes }} <span class="exact-bytes">({{ detail.summary.archive_size }} B)</span></dd></div><div><dt>文件数</dt><dd>{{ detail.manifest.files|length }}</dd></div><div><dt>Schema</dt><dd><code>{{ detail.manifest.schema_version }}</code></dd></div></dl>{{ identifier('SHA-256', detail.summary.archive_sha256) }}</section>
+  </aside>
+</div>
+
+<footer class="capsule-footer"><span>胶囊生成时间：{{ detail.summary.created_at|datetime }}</span><code>{{ detail.summary.capsule_id }}</code></footer>
+{% endblock %}

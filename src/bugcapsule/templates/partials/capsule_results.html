@@ -1,0 +1,33 @@
+{% from "macros/components.html" import icon, status_badge %}
+{% if is_htmx %}<strong id="capsule-result-count" hx-swap-oob="true">{{ capsules|length }}</strong>{% endif %}
+{% if capsules %}
+<div class="table-shell">
+  <table class="capsule-table">
+    <thead><tr><th>胶囊 ID</th><th>服务 / 接口</th><th>异常</th><th>证据</th><th>脱敏</th><th>分析</th><th>验证</th><th>捕获时间</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+    <tbody>
+    {% for capsule in capsules %}
+      <tr>
+        <td><a class="table-id" href="/capsules/{{ capsule.capsule_id }}">{{ capsule.capsule_id }}</a><code class="sub-id" title="{{ capsule.trace_id }}">trace {{ capsule.trace_id|short_id }}</code></td>
+        <td><strong>{{ capsule.service_name }}</strong>{% if capsule.service_version %}<span class="muted">{{ capsule.service_version }}</span>{% endif %}<code class="table-entrypoint">{{ capsule.entrypoint }}</code></td>
+        <td><code class="fault-type">{{ capsule.fault_type }}</code><span class="fault-summary">{{ capsule.fault_summary }}</span></td>
+        <td><strong>{{ capsule.evidence_count }}</strong><span class="muted">{{ capsule.candidate_source_count }} 个源码区域</span></td>
+        <td><strong>{{ capsule.redaction_finding_count }}</strong><span class="muted">项已脱敏</span></td>
+        <td>{{ status_badge(capsule.analysis_status) }}</td>
+        <td>{{ status_badge(capsule.verification_status) }}</td>
+        <td><time datetime="{{ capsule.created_at.isoformat() }}">{{ capsule.created_at|datetime }}</time></td>
+        <td><a class="icon-link" href="/capsules/{{ capsule.capsule_id }}/download" title="导出此胶囊" aria-label="导出 {{ capsule.capsule_id }}">{{ icon('download') }}</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  {{ icon('capsule', 'empty-icon') }}
+  <h2>尚无匹配的故障胶囊</h2>
+  <p>运行下列命令稳定触发数据库连接池故障，随后按 Trace ID 捕获胶囊。</p>
+  <pre><code>bugcapsule demo run
+bugcapsule capture --trace-id &lt;trace-id&gt;</code></pre>
+  <a class="btn btn-primary" href="/demo">{{ icon('terminal') }}查看演示控制</a>
+</div>
+{% endif %}

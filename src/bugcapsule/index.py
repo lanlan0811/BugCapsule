@@ -9,13 +9,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from bugcapsule.capsule.archive import CapsuleArchive, CapsuleArchiveError
+from pydantic import ValidationError
+
+from bugcapsule.capsule.archive import CapsuleArchive, CapsuleArchiveError, ImportedCapsule
 from bugcapsule.capsule.evidence import EvidenceChain, EvidenceCorrelator, EvidenceLoadError
 from bugcapsule.capsule.identifiers import sha256_hex
-from bugcapsule.capsule.schema import CapsuleManifest
+from bugcapsule.capsule.schema import (
+    CapsuleManifest,
+    EvidenceKind,
+    RedactionReport,
+)
 from bugcapsule.config import Settings
 
-INDEX_SCHEMA_VERSION = "1"
+INDEX_SCHEMA_VERSION = "2"
 
 
 class CapsuleIndexError(RuntimeError):
@@ -43,8 +49,12 @@ class CapsuleSummary:
     redaction_status: str
     analysis_status: str
     verification_status: str
+    fault_type: str
+    fault_summary: str
     evidence_count: int
     candidate_source_count: int
+    redaction_finding_count: int
+    archive_sha256: str
     archive_size: int
 
     def to_dict(self) -> dict[str, Any]:
@@ -60,12 +70,14 @@ class CapsuleDetail:
     summary: CapsuleSummary
     manifest: CapsuleManifest
     evidence: EvidenceChain
+    redaction_report: RedactionReport
     archive_path: Path
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "summary": self.summary.to_dict(),
             "manifest": self.manifest.model_dump(mode="json"),
+            "redaction_report": self.redaction_report.model_dump(mode="json"),
             "ranked_evidence": [item.model_dump(mode="json") for item in self.evidence.ranked],
             "timeline": [
                 {
@@ -173,16 +185,30 @@ class CapsuleIndex:
             connection.commit()
         return self._summary_from_record(record)
 
+    def inspect(self, source: Path) -> CapsuleSummary:
+        """Validate one in-directory archive without changing the SQLite index."""
+        try:
+            return self._summary_from_record(self._record_for(source))
+        except (CapsuleArchiveError, EvidenceLoadError, OSError) as exc:
+            raise CapsuleIndexError(str(exc)) from exc
+
     def list_capsules(
         self,
         *,
         query: str | None = None,
         analysis_status: str | None = None,
         verification_status: str | None = None,
+        sort_by: str = "time",
         limit: int = 100,
     ) -> tuple[CapsuleSummary, ...]:
         if not 1 <= limit <= 500:
             raise CapsuleIndexError("limit must be between 1 and 500")
+        if analysis_status not in {None, "not_run", "completed", "failed"}:
+            raise CapsuleIndexError("unknown analysis status")
+        if verification_status not in {None, "not_run", "running", "passed", "failed"}:
+            raise CapsuleIndexError("unknown verification status")
+        if sort_by not in {"time", "status"}:
+            raise CapsuleIndexError("sort_by must be time or status")
         clauses: list[str] = []
         parameters: list[object] = []
         if query:
@@ -200,9 +226,15 @@ class CapsuleIndex:
             clauses.append("verification_status = ?")
             parameters.append(verification_status)
         where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
-        query_sql = (
-            "SELECT * FROM capsules" + where + " ORDER BY created_at DESC, capsule_id ASC LIMIT ?"
-        )
+        order = "created_at DESC, capsule_id ASC"
+        if sort_by == "status":
+            order = (
+                "CASE verification_status WHEN 'failed' THEN 0 WHEN 'running' THEN 1 "
+                "WHEN 'passed' THEN 2 ELSE 3 END, "
+                "CASE analysis_status WHEN 'failed' THEN 0 WHEN 'completed' THEN 1 ELSE 2 END, "
+                "created_at DESC, capsule_id ASC"
+            )
+        query_sql = "SELECT * FROM capsules" + where + f" ORDER BY {order} LIMIT ?"
         parameters.append(limit)
         with closing(self._connect()) as connection:
             rows = connection.execute(query_sql, parameters).fetchall()
@@ -227,12 +259,14 @@ class CapsuleIndex:
         try:
             imported = self.archive.import_capsule(source)
             evidence = self.correlator.build(imported)
+            redaction_report = self._redaction_report(imported)
         except (CapsuleArchiveError, EvidenceLoadError) as exc:
             raise CapsuleIndexStaleError(f"indexed capsule is no longer valid: {exc}") from exc
         return CapsuleDetail(
             summary=self._summary_from_record(record),
             manifest=imported.manifest,
             evidence=evidence,
+            redaction_report=redaction_report,
             archive_path=source,
         )
 
@@ -249,6 +283,11 @@ class CapsuleIndex:
         version = connection.execute(
             "SELECT value FROM index_metadata WHERE key = 'schema_version'"
         ).fetchone()
+        if version is not None and version["value"] == "1":
+            self._migrate_v1(connection)
+            version = connection.execute(
+                "SELECT value FROM index_metadata WHERE key = 'schema_version'"
+            ).fetchone()
         if version is not None and version["value"] != INDEX_SCHEMA_VERSION:
             connection.close()
             raise CapsuleIndexError("unsupported SQLite index schema; remove or rebuild it")
@@ -266,8 +305,10 @@ class CapsuleIndex:
             "git_branch TEXT NOT NULL, git_dirty INTEGER NOT NULL CHECK(git_dirty IN (0, 1)), "
             "redaction_status TEXT NOT NULL, analysis_status TEXT NOT NULL, "
             "verification_status TEXT NOT NULL, "
+            "fault_type TEXT NOT NULL, fault_summary TEXT NOT NULL, "
             "evidence_count INTEGER NOT NULL CHECK(evidence_count >= 0), "
-            "candidate_source_count INTEGER NOT NULL CHECK(candidate_source_count >= 0))"
+            "candidate_source_count INTEGER NOT NULL CHECK(candidate_source_count >= 0), "
+            "redaction_finding_count INTEGER NOT NULL CHECK(redaction_finding_count >= 0))"
         )
         connection.execute(
             "CREATE INDEX IF NOT EXISTS capsules_created_at_idx ON capsules(created_at DESC)"
@@ -281,6 +322,8 @@ class CapsuleIndex:
         archive_bytes = safe_source.read_bytes()
         imported = self.archive.import_capsule(safe_source)
         evidence = self.correlator.build(imported)
+        redaction_report = self._redaction_report(imported)
+        fault_type, fault_summary = self._fault_details(evidence)
         manifest = imported.manifest
         return {
             "capsule_id": manifest.capsule_id,
@@ -299,9 +342,52 @@ class CapsuleIndex:
             "redaction_status": manifest.redaction_status,
             "analysis_status": manifest.analysis_status,
             "verification_status": manifest.verification_status,
+            "fault_type": fault_type,
+            "fault_summary": fault_summary,
             "evidence_count": len(evidence.items),
             "candidate_source_count": len(evidence.candidate_sources),
+            "redaction_finding_count": redaction_report.total_findings,
         }
+
+    @staticmethod
+    def _redaction_report(imported: ImportedCapsule) -> RedactionReport:
+        try:
+            payload = imported.read("redaction-report.json")
+            return RedactionReport.model_validate_json(payload)
+        except (CapsuleArchiveError, ValidationError) as exc:
+            raise EvidenceLoadError("capsule contains an invalid redaction report") from exc
+
+    @staticmethod
+    def _fault_details(evidence: EvidenceChain) -> tuple[str, str]:
+        error_logs = [
+            item
+            for item in evidence.ranked
+            if item.kind is EvidenceKind.LOG and item.content.get("level") in {"ERROR", "CRITICAL"}
+        ]
+        if not error_logs:
+            return "unknown", "未捕获错误日志"
+        error_log = error_logs[0]
+        fault = error_log.content.get("fault")
+        fault_type = fault if isinstance(fault, str) and fault else "runtime_error"
+        return fault_type, "关联错误日志可在证据链中核验"
+
+    @staticmethod
+    def _migrate_v1(connection: sqlite3.Connection) -> None:
+        columns = {
+            str(row["name"]) for row in connection.execute("PRAGMA table_info(capsules)").fetchall()
+        }
+        additions = {
+            "fault_type": "TEXT NOT NULL DEFAULT 'unknown'",
+            "fault_summary": "TEXT NOT NULL DEFAULT ''",
+            "redaction_finding_count": "INTEGER NOT NULL DEFAULT 0",
+        }
+        for name, declaration in additions.items():
+            if name not in columns:
+                connection.execute(f"ALTER TABLE capsules ADD COLUMN {name} {declaration}")
+        connection.execute(
+            "UPDATE index_metadata SET value = ? WHERE key = 'schema_version'",
+            (INDEX_SCHEMA_VERSION,),
+        )
 
     def _resolve_archive_path(self, source: Path) -> Path:
         resolved = source.resolve()
@@ -330,8 +416,11 @@ class CapsuleIndex:
             "redaction_status",
             "analysis_status",
             "verification_status",
+            "fault_type",
+            "fault_summary",
             "evidence_count",
             "candidate_source_count",
+            "redaction_finding_count",
         )
         names = ", ".join(columns)
         values = ", ".join(f":{column}" for column in columns)
@@ -355,7 +444,11 @@ class CapsuleIndex:
             redaction_status=str(record["redaction_status"]),
             analysis_status=str(record["analysis_status"]),
             verification_status=str(record["verification_status"]),
+            fault_type=str(record["fault_type"]),
+            fault_summary=str(record["fault_summary"]),
             evidence_count=int(record["evidence_count"]),
             candidate_source_count=int(record["candidate_source_count"]),
+            redaction_finding_count=int(record["redaction_finding_count"]),
+            archive_sha256=str(record["archive_sha256"]),
             archive_size=int(record["archive_size"]),
         )

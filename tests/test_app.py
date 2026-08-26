@@ -11,7 +11,7 @@ from bugcapsule.app import create_app
 def test_healthcheck_reports_version() -> None:
     async def request_healthcheck() -> httpx.Response:
         transport = httpx.ASGITransport(app=create_app())
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             return await client.get("/healthz")
 
     response = asyncio.run(request_healthcheck())

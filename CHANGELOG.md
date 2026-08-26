@@ -24,6 +24,8 @@
 - 实现 `capture --trace-id`，关联 Span、日志、Stack Trace、源码窗口、Git、依赖和环境并导出胶囊。
 - 添加确定性证据优先级、Trace/Span 因果时间线与候选源码区域关联。
 - 添加以胶囊为事实源的可重建 SQLite 元数据索引及 `index`、`capsules` CLI 查询。
+- 添加遵循 BugCapsule Design System 的 Jinja2 + HTMX 故障列表、胶囊详情、证据链和演示控制页面。
+- 添加本地胶囊安全导入、原始归档导出、同源请求校验和本地固定版本 HTMX 资源。
 
 ### 说明
 

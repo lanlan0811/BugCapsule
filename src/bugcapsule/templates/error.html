@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "macros/components.html" import icon %}
+{% block title %}{{ title }} · BugCapsule{% endblock %}
+{% block content %}
+<div class="error-page">
+  {{ icon('warning', 'error-icon') }}
+  <p class="eyebrow">请求未完成</p>
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <a class="btn btn-secondary" href="/capsules">返回故障列表</a>
+</div>
+{% endblock %}
+

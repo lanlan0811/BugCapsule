@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros/components.html" import icon %}
+{% block title %}故障列表 · BugCapsule{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">故障胶囊</p>
+    <h1>故障列表</h1>
+    <p class="page-description">从已校验胶囊查看故障状态、证据数量与验证进度。</p>
+  </div>
+  <div class="page-stat"><strong id="capsule-result-count">{{ capsules|length }}</strong><span>当前结果</span></div>
+</header>
+
+{% if rebuild_result.issues %}
+<div class="notice notice-warning" role="status">{{ icon('warning') }}<div><strong>{{ rebuild_result.issues|length }} 个归档未进入索引</strong><p>归档校验失败，已保留原文件。运行 <code>bugcapsule index rebuild</code> 可查看确定性诊断。</p></div></div>
+{% endif %}
+
+<form class="toolbar" method="get" action="/capsules" hx-get="/capsules" hx-target="#capsule-results" hx-push-url="true" hx-trigger="input changed delay:300ms, change">
+  <label class="search-field">{{ icon('search') }}<span class="visually-hidden">搜索胶囊</span><input name="query" value="{{ filters.query }}" placeholder="搜索 capsule_id、trace_id、服务或接口" autocomplete="off"></label>
+  <label><span>分析</span><select name="analysis_status"><option value="">全部</option><option value="not_run" {{ 'selected' if filters.analysis_status == 'not_run' else '' }}>未开始</option><option value="completed" {{ 'selected' if filters.analysis_status == 'completed' else '' }}>已完成</option><option value="failed" {{ 'selected' if filters.analysis_status == 'failed' else '' }}>失败</option></select></label>
+  <label><span>验证</span><select name="verification_status"><option value="">全部</option><option value="not_run" {{ 'selected' if filters.verification_status == 'not_run' else '' }}>未开始</option><option value="running" {{ 'selected' if filters.verification_status == 'running' else '' }}>进行中</option><option value="passed" {{ 'selected' if filters.verification_status == 'passed' else '' }}>通过</option><option value="failed" {{ 'selected' if filters.verification_status == 'failed' else '' }}>失败</option></select></label>
+  <label><span>排序</span><select name="sort"><option value="time" {{ 'selected' if filters.sort == 'time' else '' }}>捕获时间</option><option value="status" {{ 'selected' if filters.sort == 'status' else '' }}>处理状态</option></select></label>
+  <span class="htmx-indicator filter-status">正在更新</span>
+</form>
+
+<section id="capsule-results" aria-live="polite">
+  {% include "partials/capsule_results.html" %}
+</section>
+{% endblock %}

@@ -29,6 +29,9 @@ def test_rebuild_indexes_valid_capsules_and_reports_invalid_archives(tmp_path: P
     assert detail is not None
     assert detail.summary.evidence_count == 7
     assert detail.summary.candidate_source_count == 1
+    assert detail.summary.redaction_finding_count == 0
+    assert detail.summary.fault_type == "database_pool_exhausted"
+    assert len(detail.summary.archive_sha256) == 64
     assert detail.manifest.trace.trace_id == detail.summary.trace_id
     assert detail.to_dict()["timeline"][0]["relation"] == "request_root"
 
@@ -98,3 +101,37 @@ def test_index_rejects_unknown_database_schema(tmp_path: Path) -> None:
 
     with pytest.raises(CapsuleIndexError, match="unsupported SQLite index schema"):
         index.list_capsules()
+
+
+def test_index_migrates_rebuildable_v1_metadata_schema(tmp_path: Path) -> None:
+    index = make_index(tmp_path)
+    index.database_path.parent.mkdir(parents=True)
+    with sqlite3.connect(index.database_path) as connection:
+        connection.execute(
+            "CREATE TABLE index_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+        )
+        connection.execute("INSERT INTO index_metadata(key, value) VALUES ('schema_version', '1')")
+        connection.execute(
+            "CREATE TABLE capsules (capsule_id TEXT PRIMARY KEY, created_at TEXT, trace_id TEXT)"
+        )
+
+    assert index.list_capsules() == ()
+    with sqlite3.connect(index.database_path) as connection:
+        version = connection.execute(
+            "SELECT value FROM index_metadata WHERE key = 'schema_version'"
+        ).fetchone()
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(capsules)")}
+
+    assert version == ("2",)
+    assert {"fault_type", "fault_summary", "redaction_finding_count"} <= columns
+
+
+def test_index_rejects_unknown_filters_and_sort(tmp_path: Path) -> None:
+    index = make_index(tmp_path)
+
+    with pytest.raises(CapsuleIndexError, match="unknown analysis status"):
+        index.list_capsules(analysis_status="invalid")
+    with pytest.raises(CapsuleIndexError, match="unknown verification status"):
+        index.list_capsules(verification_status="invalid")
+    with pytest.raises(CapsuleIndexError, match="sort_by"):
+        index.list_capsules(sort_by="invalid")
