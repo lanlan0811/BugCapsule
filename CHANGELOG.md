@@ -59,5 +59,6 @@
 - 修复 Linux CI 中 ANSI CLI 帮助断言与非 root 验证容器无法遍历 0700 patched 临时目录的问题。
 - 修复只读订单容器启动时运行 `uv` 和命名卷目录缺少非 root 写权限导致的退出问题，并补充 Compose 失败诊断。
 - 为主演示耗尽后的 CI 断言补充保留原始退出码的容器状态与服务日志采集，便于复核远端实机故障。
+- 修复 Compose 只等待订单容器进入 running、未等待 Uvicorn HTTP 就绪而触发首个故障请求连接竞态的问题。
 
 [未发布]: https://gitee.com/lan0811/bug-capsule/commits/master

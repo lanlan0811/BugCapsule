@@ -37,6 +37,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          /app/.venv/bin/python -c "import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:$${BUGCAPSULE_DEMO_PORT}/healthz',
+          timeout=2).read()"
+      interval: 1s
+      timeout: 3s
+      retries: 20
+      start_period: 3s
     ports:
       - "127.0.0.1:${BUGCAPSULE_DEMO_PORT:-8766}:8766"
     read_only: true

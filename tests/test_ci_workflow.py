@@ -42,6 +42,10 @@ def test_order_image_is_read_only_ready_and_owns_configured_telemetry_mount() ->
     assert f'chown -R bugcapsule:bugcapsule /app "${argument}"' in dockerfile
     assert 'CMD ["/app/.venv/bin/python", "-m", "bugcapsule.demo"]' in dockerfile
     assert f"{argument}: ${{{argument}:-/var/lib/bugcapsule}}" in compose
+    assert "127.0.0.1:$${BUGCAPSULE_DEMO_PORT}/healthz" in compose
+    assert "/app/.venv/bin/python -c" in compose
+    assert "start_period: 3s" in compose
+    assert "docker compose up --build --detach --wait" in WORKFLOW.read_text(encoding="utf-8")
     assert "docker compose logs --no-color order-service" in WORKFLOW.read_text(encoding="utf-8")
 
 
