@@ -44,4 +44,10 @@
 - `schema_version` 当前只接受 `0.1.0`；不支持的版本必须显式拒绝。
 - `explicitly_approved=true` 时，`approved_sha256` 必须逐字等于 `patch_sha256`。
 
+## 默认脱敏
+
+所有证据必须在写入胶囊或发送给模型之前递归脱敏。字段名匹配 Authorization、Cookie、Token、密码、API Key 或连接串时替换整个值；其余字符串继续检测 Bearer 凭据、数据库 URL、邮箱、中国大陆手机号和常见 API Key 形式。
+
+`redaction-report.json` 只记录规则 ID、JSON Pointer 位置、固定替换标记和命中数量，绝不记录原始匹配内容。Finding ID 从这些非敏感审计字段稳定派生。
+
 正式验证逻辑以 [`src/bugcapsule/capsule/schema.py`](../src/bugcapsule/capsule/schema.py) 中的 Pydantic 模型为准。

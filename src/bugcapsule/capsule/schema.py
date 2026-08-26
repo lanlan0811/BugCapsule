@@ -267,6 +267,22 @@ class RedactionFinding(CapsuleModel):
     match_count: int = Field(ge=1)
 
 
+class RedactionReport(CapsuleModel):
+    """Versioned audit report produced before capsule persistence or model input."""
+
+    schema_version: Literal["0.1.0"] = "0.1.0"
+    rule_version: Literal["0.1.0"] = "0.1.0"
+    completed_at: AwareDatetime
+    total_findings: int = Field(ge=0)
+    findings: tuple[RedactionFinding, ...]
+
+    @model_validator(mode="after")
+    def validate_finding_count(self) -> RedactionReport:
+        if self.total_findings != len(self.findings):
+            raise ValueError("total_findings must match findings length")
+        return self
+
+
 class EvidenceReferenceError(ValueError):
     """Raised when a model conclusion cites evidence outside the capsule."""
 

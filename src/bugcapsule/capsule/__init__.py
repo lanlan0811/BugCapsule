@@ -1,6 +1,7 @@
 """Public types and validation helpers for the open capsule format."""
 
 from bugcapsule.capsule.identifiers import canonical_json, stable_identifier
+from bugcapsule.capsule.redaction import RedactionResult, RedactionRule, Redactor
 from bugcapsule.capsule.schema import (
     CapsuleFile,
     CapsuleManifest,
@@ -11,6 +12,7 @@ from bugcapsule.capsule.schema import (
     GitInfo,
     PatchCandidate,
     RedactionFinding,
+    RedactionReport,
     RootCauseCandidate,
     ServiceInfo,
     TestResult,
@@ -29,6 +31,10 @@ __all__ = [
     "GitInfo",
     "PatchCandidate",
     "RedactionFinding",
+    "RedactionReport",
+    "RedactionResult",
+    "RedactionRule",
+    "Redactor",
     "RootCauseCandidate",
     "ServiceInfo",
     "TestResult",
