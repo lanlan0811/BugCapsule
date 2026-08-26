@@ -49,24 +49,21 @@ uv run bugcapsule serve
 
 ```powershell
 Copy-Item .env.example .env
-docker compose up --build --detach
-curl.exe http://127.0.0.1:8766/healthz
+uv run bugcapsule demo up
 ```
 
-订单服务的 SQLAlchemy 连接池默认固定为 `pool_size=2`、`max_overflow=0`。连续执行三次故障请求：
+订单服务的 SQLAlchemy 连接池默认固定为 `pool_size=2`、`max_overflow=0`。运行一次完整、可重复的故障注入：
 
 ```powershell
-curl.exe -X POST http://127.0.0.1:8766/demo/leak
-curl.exe -X POST http://127.0.0.1:8766/demo/leak
-curl.exe -X POST http://127.0.0.1:8766/demo/leak
+uv run bugcapsule demo run
 ```
 
 前两次请求在注入的异常路径中保留数据库 Session，第三次返回 `503` 与 `database_pool_exhausted`。可查询并重置确定性状态：
 
 ```powershell
 curl.exe http://127.0.0.1:8766/demo/status
-curl.exe -X POST http://127.0.0.1:8766/demo/reset
-docker compose down
+uv run bugcapsule demo reset
+uv run bugcapsule demo down
 ```
 
 所有端口只映射到宿主机 `127.0.0.1`。订单容器以非 root 用户、只读根文件系统、移除 Linux capabilities 且启用 `no-new-privileges` 运行。

@@ -1,5 +1,6 @@
 """Environment-backed configuration for the controlled order service."""
 
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, SecretStr
@@ -23,3 +24,6 @@ class DemoSettings(BaseSettings):
     pool_size: int = Field(default=2, ge=1, le=10)
     max_overflow: int = Field(default=0, ge=0, le=10)
     pool_timeout_seconds: float = Field(default=1.0, gt=0, le=30)
+    api_url: str = "http://127.0.0.1:8766"
+    compose_file: Path = Path("compose.yml")
+    command_timeout_seconds: float = Field(default=180, gt=0, le=600)

@@ -15,6 +15,7 @@
 - 添加 Typer CLI、确定性 `uv.lock`、单元测试、覆盖率门禁和多版本 CI。
 - 添加 FastAPI 订单服务、PostgreSQL Compose 环境和可重置的连接池耗尽故障路径。
 - 添加非 root、只读文件系统、最小 capabilities 的订单服务容器基线。
+- 实现 `bugcapsule demo up|run|reset|down`，安全编排容器并校验固定故障状态序列。
 
 ### 说明
 

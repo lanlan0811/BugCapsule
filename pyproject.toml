@@ -67,6 +67,7 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "DTZ", "PTH", "RUF"]
+allowed-confusables = ["：", "，", "；"]
 
 [tool.ruff.format]
 quote-style = "double"
