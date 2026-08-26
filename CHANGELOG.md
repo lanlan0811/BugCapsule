@@ -60,5 +60,6 @@
 - 修复只读订单容器启动时运行 `uv` 和命名卷目录缺少非 root 写权限导致的退出问题，并补充 Compose 失败诊断。
 - 为主演示耗尽后的 CI 断言补充保留原始退出码的容器状态与服务日志采集，便于复核远端实机故障。
 - 修复 Compose 只等待订单容器进入 running、未等待 Uvicorn HTTP 就绪而触发首个故障请求连接竞态的问题。
+- 修复服务仅连接 Docker 内部网络时宿主机 localhost 端口未发布的问题；数据库继续留在内部网络，订单服务通过禁用 masquerade 的入口桥接网络暴露。
 
 [未发布]: https://gitee.com/lan0811/bug-capsule/commits/master

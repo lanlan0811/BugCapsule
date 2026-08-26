@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import yaml  # type: ignore[import-untyped]
+
 WORKFLOW = Path(__file__).parents[1] / ".github" / "workflows" / "ci.yml"
 RELEASE_WORKFLOW = Path(__file__).parents[1] / ".github" / "workflows" / "release.yml"
 DOCKERFILE = Path(__file__).parents[1] / "Dockerfile"
@@ -47,6 +49,21 @@ def test_order_image_is_read_only_ready_and_owns_configured_telemetry_mount() ->
     assert "start_period: 3s" in compose
     assert "docker compose up --build --detach --wait" in WORKFLOW.read_text(encoding="utf-8")
     assert "docker compose logs --no-color order-service" in WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_compose_keeps_database_internal_and_adds_a_non_masqueraded_host_edge() -> None:
+    document = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
+    services = document["services"]
+    networks = document["networks"]
+
+    assert services["postgres"]["networks"] == ["demo-internal"]
+    assert services["order-service"]["networks"] == ["demo-internal", "demo-edge"]
+    assert networks["demo-internal"]["internal"] is True
+    assert networks["demo-edge"]["driver"] == "bridge"
+    assert (
+        networks["demo-edge"]["driver_opts"]["com.docker.network.bridge.enable_ip_masquerade"]
+        == "false"
+    )
 
 
 def test_demo_failure_cleanup_preserves_exit_code_and_prints_container_evidence() -> None:
