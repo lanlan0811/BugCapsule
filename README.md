@@ -169,6 +169,8 @@ uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay
 
 数据集平均覆盖连接泄漏、数据库不可达和慢查询，生成结果包含标注文件 SHA-256，且所有案例明确标记为仿真数据。评测输出逐案例事实及 Top-1、引用有效率、证据覆盖率和三段 P50/P95；`--mode live` 才代表当前配置模型，注释回放不会冒充在线模型能力。格式、评分口径和复现约束见[基准数据集文档](docs/benchmark.md)。
 
+希望不先运行生成器即可检查格式时，可直接导入仓库中的[连接泄漏仿真示例](examples/README.md)。示例附独立 SHA-256，并由测试持续验证其 Schema、清单完整性与版本化数据集来源。
+
 首次启动或路演前先运行只读诊断：
 
 ```powershell
@@ -203,6 +205,7 @@ uv run pytest
 - [安全策略](SECURITY.md)
 - [发布供应链与 SBOM](docs/supply-chain.md)
 - [基准数据集](docs/benchmark.md)
+- [示例胶囊](examples/README.md)
 - [可用性验收协议](docs/usability-study.md)
 - [行为准则](CODE_OF_CONDUCT.md)
 - [变更记录](CHANGELOG.md)

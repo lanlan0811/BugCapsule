@@ -71,6 +71,8 @@ uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay
 
 Replay measurements validate the offline pipeline and scoring method; they are never presented as live-model capability. See [the benchmark protocol](docs/benchmark.md).
 
+A [checksum-pinned simulated connection-leak capsule](examples/README.md) is committed for direct format review and Web import. Tests continuously verify its archive integrity and provenance from the versioned dataset.
+
 ## Quality gates
 
 ```powershell

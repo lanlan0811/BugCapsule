@@ -41,10 +41,11 @@
 - 完成英文快速开始、公开威胁模型、0.1 路线图及 GitHub Issue/PR 模板。
 - 添加生产依赖 CycloneDX 1.6 SBOM、哈希锁定漏洞审计、wheel/sdist 完整性校验与 SHA-256 发布清单。
 - 添加受完整 CI 门禁保护的标签 Release 工作流和供应链复现文档。
+- 提交可直接导入、带 SHA-256 且由测试绑定到版本化标注的连接泄漏仿真示例胶囊。
 
 ### 说明
 
 - 当前仓库处于 `0.1.0` 阶段七开发，已具备从捕获到隔离验证、HTML 报告和可审计发布包的工程闭环。
-- Docker 环境实机验收、外部可用性验收、示例胶囊提交和正式 Release 尚未完成。
+- Docker 环境实机验收、外部可用性验收和正式 Release 尚未完成。
 
 [未发布]: https://gitee.com/lan0811/bug-capsule/commits/master
