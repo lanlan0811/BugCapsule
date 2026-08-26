@@ -165,9 +165,11 @@
             "output/video/README.md",
             "docs/demo-runbook.md",
             "scripts/validate_demo_plan.py",
-            "tests/test_demo_plan.py"
+            "scripts/validate_rehearsal_summary.py",
+            "tests/test_demo_plan.py",
+            "tests/test_rehearsal_summary.py"
           ],
-          "verification": "uv run python scripts/validate_demo_plan.py；随后按 docs/demo-runbook.md 在 Docker 环境完成三次彩排",
+          "verification": "uv run python scripts/validate_demo_plan.py；真实彩排后用 validate_rehearsal_summary.py 绑定冻结提交并验证三轮结果",
           "status": "partially_verified"
         },
         {

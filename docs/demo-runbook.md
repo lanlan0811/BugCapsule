@@ -67,7 +67,15 @@ uv run python scripts/validate_demo_plan.py
 
 ## 彩排记录与通过门槛
 
-正式录制前连续完成三次计时彩排。每次生成一条去敏记录，最终汇总写入尚未创建的 `output/video/rehearsal-summary.json`，至少包含：提交 SHA、Windows 版本、Docker 版本、起止时间、实际时长、故障序列、胶囊 SHA-256、报告 SHA-256、before/after 退出码、是否断网、失败点和操作者备注。
+正式录制前连续完成三次计时彩排。每次生成一条去敏记录，最终汇总写入尚未创建的 `output/video/rehearsal-summary.json`。严格字段由 `scripts/validate_rehearsal_summary.py` 定义：提交 SHA、Windows 与 Docker/Compose 版本、带时区起止时间、实际时长、联网/断网模式、Replay 披露、故障序列、胶囊/报告 SHA-256、before/after 退出码、主工作区不变、断网回放结果、枚举化观察代码和失败检查点。禁止自由文本操作者备注，避免路径、账号或设备信息进入仓库。
+
+三次均通过后执行：
+
+```powershell
+uv run python scripts/validate_rehearsal_summary.py `
+  --summary output/video/rehearsal-summary.json `
+  --expected-commit <40位小写冻结提交SHA>
+```
 
 三次均满足以下条件才可将视频状态改为已验证：
 

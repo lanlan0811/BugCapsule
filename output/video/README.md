@@ -16,3 +16,13 @@ uv run python scripts/validate_demo_plan.py
 ```
 
 校验器会拒绝时间断点、重叠、非 180 秒结尾、重复镜头、缺失仓库证据、未知运行模式，以及在实际视频不存在时被错误标记为已验证的状态。
+
+完成三次真实彩排后，按 [`demo-runbook.md`](../../docs/demo-runbook.md) 中的严格 JSON 字段写入 `rehearsal-summary.json`，再将冻结提交的完整 SHA 传给汇总门禁：
+
+```powershell
+uv run python scripts/validate_rehearsal_summary.py `
+  --summary output/video/rehearsal-summary.json `
+  --expected-commit <40位小写冻结提交SHA>
+```
+
+门禁要求三条唯一彩排记录全部在 180±5 秒内，故障序列均为 `500/500/503`，验证均为 before 非零、after 零，胶囊与报告使用完整 SHA-256，主工作区未改变，并至少有一轮明确使用断网模式。当前文件不存在，表示真实彩排尚未执行。
