@@ -1,103 +1,212 @@
-# BugCapsule
+<p align="center"><img src="docs/assets/brand/bugcapsule-banner.svg" width="100%" alt="BugCapsule project banner: evidence-bound debugging and verified fixes"></p>
 
-BugCapsule is an evidence-first, open-source AI debugging tool. It packages traces, logs, stack traces, bounded source snippets, Git context, model analysis, a proposed Patch, and isolated before/after verification into a portable and integrity-checked `.bugcapsule` archive.
+<p align="center"><img src="docs/assets/brand/bugcapsule-app-icon.svg" width="112" height="112" alt="BugCapsule application icon"></p>
 
-The model cannot edit the main workspace. Every root-cause citation must resolve to evidence included in the model request; every Patch is parsed and checked locally; verification requires an exact Patch ID, SHA-256, and explicit approval before it runs in restricted temporary Docker copies.
+<h1 align="center">BugCapsule</h1>
 
-The primary repository and contribution entry point are on [Gitee](https://gitee.com/lan0811/bug-capsule). The GitHub repository is a mirror.
+<p align="center"><strong>Package one failure as portable, citable, and verifiable evidence.</strong></p>
 
-## Requirements
+<p align="center"><a href="README.md">中文</a> · <a href="https://gitee.com/lan0811/bug-capsule">Primary Gitee repository</a> · <a href="https://github.com/lanlan0811/BugCapsule">GitHub mirror</a> · <a href="docs/submission-evidence.md">Review evidence</a></p>
 
-- Python 3.10, 3.11, or 3.12
-- [uv](https://docs.astral.sh/uv/)
-- Docker Desktop or Docker Engine with Compose v2 for the main demo and isolated verification
-- Git
+<p align="center"><code>0.1.0 in development</code> <code>Apache-2.0</code> <code>Python 3.10–3.12</code> <code>local-first</code> <code>no CDN</code></p>
 
-Windows 10/11 and Linux are the intended development environments. All Web assets are packaged locally; replay mode can be demonstrated without model network access.
+## What BugCapsule is
 
-## Quick start
+BugCapsule is an open-source AI debugging tool built around runtime evidence and verified fixes. It organizes traces, logs, stack traces, source windows, Git state, root-cause candidates, patches, and regression results into an integrity-checked `.bugcapsule` archive. Every model claim must resolve to an `Evidence ID` from the current failure.
+
+The project does not let a model edit the main workspace. It implements a constrained engineering loop:
+
+```text
+fault injection → Trace / Log / Source / Git → .bugcapsule
+               → evidence-bound root cause → constrained Patch
+               → human review of Patch ID + SHA-256
+               → restricted before/after Docker regression
+               → self-contained HTML report
+```
+
+The primary demo focuses on one reproducible failure: a FastAPI order service retains SQLAlchemy sessions on an exception path. A PostgreSQL pool fixed at two connections deterministically returns `HTTP 503 / database_pool_exhausted` on the third request.
+
+## Technology stack
+
+Every icon is a repository-local SVG. The README uses no CDN or remote badge service.
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/assets/tech/python.svg" width="64" alt="Python"><br><sub>Python 3.10–3.12</sub></td>
+    <td align="center"><img src="docs/assets/tech/fastapi.svg" width="64" alt="FastAPI"><br><sub>FastAPI</sub></td>
+    <td align="center"><img src="docs/assets/tech/postgresql.svg" width="64" alt="PostgreSQL"><br><sub>PostgreSQL</sub></td>
+    <td align="center"><img src="docs/assets/tech/sqlalchemy.svg" width="64" alt="SQLAlchemy"><br><sub>SQLAlchemy 2</sub></td>
+    <td align="center"><img src="docs/assets/tech/opentelemetry.svg" width="64" alt="OpenTelemetry"><br><sub>OpenTelemetry</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/tech/docker.svg" width="64" alt="Docker"><br><sub>Docker Compose</sub></td>
+    <td align="center"><img src="docs/assets/tech/pydantic.svg" width="64" alt="Pydantic"><br><sub>Pydantic</sub></td>
+    <td align="center"><img src="docs/assets/tech/typer.svg" width="64" alt="Typer"><br><sub>Typer CLI</sub></td>
+    <td align="center"><img src="docs/assets/tech/htmx.svg" width="64" alt="HTMX"><br><sub>Jinja2 + HTMX</sub></td>
+    <td align="center"><img src="docs/assets/brand/bugcapsule-app-icon.svg" width="64" alt="BugCapsule"><br><sub>Open Capsule</sub></td>
+  </tr>
+</table>
+
+## Deterministic guardrails
+
+| Common AI-fix risk | BugCapsule control |
+| --- | --- |
+| A root cause cannot be traced back | Every candidate may cite only `Evidence ID`s included in its request |
+| A model changes arbitrary files | Only canonical unified diffs pass allowed-root, protected-path, and source-evidence checks |
+| Content changes after approval | Patch ID, full SHA-256, and explicit approval must all match |
+| A Patch contaminates the workspace | It is applied only to a temporary after-copy; workspace hashes are compared |
+| The model controls verification | Regression commands are project configuration, never model output |
+| A network outage breaks the demo | `live`, `replay`, and `off` are explicit modes; replay is never presented as live inference |
+
+## Ten-minute quick start
+
+### Requirements
+
+- Windows 10/11, Linux, or macOS;
+- Python 3.10–3.12;
+- [uv](https://docs.astral.sh/uv/);
+- Docker Desktop or Docker Engine with Compose v2 for the primary demo and isolated verification.
+
+### Install and diagnose
 
 ```powershell
-git clone https://gitee.com/lanlan0811/bug-capsule.git
-cd bug-capsule
 Copy-Item .env.example .env
 uv sync --frozen --group dev
+uv run bugcapsule --version
 uv run bugcapsule doctor
+```
+
+Configuration comes only from `.env` or `BUGCAPSULE_*` environment variables. `.env` is ignored by Git; [`.env.example`](.env.example) documents every field. `doctor` is read-only: it does not create directories, start containers, or print secret values.
+
+### Start the local Web application
+
+```powershell
 uv run bugcapsule serve
 ```
 
-Open `http://127.0.0.1:8765`. The service intentionally refuses public bind addresses.
+Open `http://127.0.0.1:8765`. The health endpoint is `GET /healthz`; OpenAPI is available at `/api/docs`. The server binds to loopback by default.
 
-Start and reproduce the controlled PostgreSQL connection-pool failure:
+### Run the PostgreSQL failure scenario
 
 ```powershell
 uv run bugcapsule demo up
 uv run bugcapsule demo run
 uv run bugcapsule demo capture
 uv run bugcapsule demo reset
+uv run bugcapsule demo down
 ```
 
-`demo capture` copies the already-redacted telemetry from the Compose volume with an argument-list invocation, rejects malformed or oversized logs, selects the latest pool-exhaustion Trace, and generates an indexed capsule. Inspect it with:
+`demo run` asserts the fixed `500 → 500 → 503` sequence. `demo capture` safely copies redacted JSONL from the named volume, validates byte limits, syntax, and Trace IDs, then creates a capsule. The Web “sync and capture” action uses the same controller.
+
+## From evidence to a verified fix
+
+### Capture and inspect
 
 ```powershell
-uv run bugcapsule capsules list
+uv run bugcapsule capture --trace-id <32-character-trace-id>
+uv run bugcapsule index rebuild
+uv run bugcapsule capsules list --query demo-order-api
 uv run bugcapsule capsules show <capsule-id>
 ```
 
-The lower-level `capture --trace-id` command remains available when the order service writes telemetry directly to the host directory.
+Capsule files are authoritative. SQLite stores only a rebuildable metadata index. Import always revalidates the Schema, ZIP safety limits, and every member SHA-256.
 
-## Analysis, Patch, verification, and report
-
-Configure an OpenAI-compatible provider in `.env` for `live`, or use a matching structured replay record for `replay`. `off` never calls a model.
+### Analyze and propose a Patch
 
 ```powershell
 uv run bugcapsule analyze <capsule-id> --mode replay
 uv run bugcapsule patch generate <capsule-id> --mode replay
+```
+
+To enable an OpenAI-compatible live provider, configure `.env`:
+
+```dotenv
+BUGCAPSULE_MODEL_MODE=live
+BUGCAPSULE_MODEL_API_STYLE=responses
+BUGCAPSULE_MODEL_BASE_URL=https://api.openai.com/v1
+BUGCAPSULE_MODEL_API_KEY=replace-with-your-key
+BUGCAPSULE_MODEL_NAME=replace-with-model-name
+```
+
+The provider receives only redacted, prioritized evidence under a byte budget. Responses must satisfy a strict schema. An unknown evidence reference triggers one retry, then an explicit failure.
+
+### Approve and verify in isolation
+
+```powershell
 uv run bugcapsule verify <capsule-id> `
-  --patch-id <full-patch-id> `
+  --patch-id <patch-id> `
   --approved-sha256 <full-64-character-sha256> `
   --approve
+
 uv run bugcapsule report <capsule-id> --output .\verification-report.html
 ```
 
-The self-contained HTML report has no scripts or external resources and can be viewed or printed offline.
+The verifier runs as non-root with no network, read-only mounts, `cap-drop=ALL`, `no-new-privileges`, and CPU, memory, PID, temporary-storage, and timeout limits. The report is self-contained: it loads no remote scripts, fonts, or images and remains reviewable offline.
 
-## Reproducible benchmark
+## Open `.bugcapsule` format
 
-The packaged simulated dataset contains 12 annotated capsules: four connection leaks, four unreachable databases, and four slow-query cases.
+`.bugcapsule` is a deterministic ZIP exchange format beginning at Schema `0.1.0`. It contains a manifest, trace/log/source evidence, a redaction report, and analysis, Patch, and verification artifacts when those stages have run. `manifest.json` records every member SHA-256, while Evidence IDs are derived from canonical content.
 
-```powershell
-uv run bugcapsule benchmark build --output .\benchmark-data
-uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay
+See the [Capsule Schema](docs/capsule-schema.md) for field-level rules, integrity checks, and compatibility policy. A [ready-to-import simulated capsule](examples/README.md) is committed for reviewers.
+
+## Verified evidence
+
+| Area | Reproducible fact |
+| --- | --- |
+| Automated tests | 195 local tests pass with 90.82% branch-aware coverage |
+| Python support | GitHub CI passes on Python 3.10, 3.11, and 3.12 |
+| Docker scenario | CI verifies HTTP readiness, `500/500/503`, the pool-exhaustion marker, and reset |
+| Fix stability | Restricted containers show 20/20 failures before and 20/20 passes after |
+| Simulated evaluation | 12/12 annotated replay cases; 100% Top-1, citation validity, and required-evidence coverage |
+| Supply chain | Production SBOM: 48 components; 47 hash-locked dependencies audited; zero known vulnerabilities |
+| Submission assets | Eight-page PDF, validated 180-second shot list, submission manifest, and gated Release workflow |
+
+Annotated replay validates the deterministic pipeline and evaluator; it is not a claim about live-model capability. See the [competition evidence index](docs/submission-evidence.md) for exact commands and CI links.
+
+## Security boundaries
+
+- Authorization, cookies, tokens, connection strings, email addresses, phone numbers, and common key formats are redacted by default.
+- Raw prompts, raw provider responses, and original secret values are not persisted.
+- Import limits member count, per-file and total expanded size, compression ratio, paths, and member types.
+- Patch parsing rejects traversal, binaries, deletion, rename, copy, mode changes, and protected-file edits.
+- Verification never mounts the Docker socket, host credentials, user directories, or a writable main workspace.
+- Report vulnerabilities privately according to [SECURITY.md](SECURITY.md), not in a public issue.
+
+The complete asset list, trust boundaries, mitigations, and residual risks are documented in the [threat model](docs/threat-model.md).
+
+## Repository map
+
+```text
+src/bugcapsule/          capsule, index, analysis, Patch, verification, and Web code
+verification_tests/     read-only fixed regression and repair fixture
+tests/                  unit, integration, contract, and security tests
+docs/                   architecture, Schema, threat model, evaluation, and delivery docs
+examples/               reviewable simulated capsule
+output/                 PDF, video plan, usability, and submission assets
+.design_library/        BugCapsule Design System
 ```
 
-Replay measurements validate the offline pipeline and scoring method; they are never presented as live-model capability. See [the benchmark protocol](docs/benchmark.md).
+## Documentation
 
-A [checksum-pinned simulated connection-leak capsule](examples/README.md) is committed for direct format review and Web import. Tests continuously verify its archive integrity and provenance from the versioned dataset.
+| Topic | Documents |
+| --- | --- |
+| System design | [Architecture](docs/architecture.md) · [Capsule Schema](docs/capsule-schema.md) · [Threat model](docs/threat-model.md) |
+| Verification and evaluation | [Benchmark](docs/benchmark.md) · [Usability protocol](docs/usability-study.md) · [Roadmap](docs/roadmap.md) |
+| Release and submission | [Supply chain](docs/supply-chain.md) · [Review evidence](docs/submission-evidence.md) · [Submission manifest](output/submission/README.md) |
+| Demo assets | [Example capsule](examples/README.md) · [Recording runbook](docs/demo-runbook.md) · [Project PDF](output/pdf/README.md) |
+| Community | [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Changelog](CHANGELOG.md) |
 
-## Quality gates
+## Current status
 
-```powershell
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy
-uv run pytest
-```
+BugCapsule remains a `0.1.0` development release. Linux Docker CI, governance, the PDF, and a reproducible demo plan are complete. The repository deliberately contains no placeholder claims for these required external results:
 
-The current test gate requires at least 90% branch-aware coverage. CI runs the locked dependency graph on Python 3.10-3.12 and executes the restricted before/after regression 20 times per state.
+1. independent evaluation of the competition's selected live model;
+2. an anonymized study with 3–5 first-time users;
+3. three Windows Docker recording rehearsals and the final MP4;
+4. a dual-platform `v0.1.0` Release after every gate is cleared.
 
-The supply-chain gate builds the wheel and source archive, generates a CycloneDX 1.6 SBOM from the production-only environment, audits hash-locked dependencies, and writes SHA-256 checksums for every deliverable. See the [release supply-chain guide](docs/supply-chain.md) for reproduction steps and limitations.
+## Contributing and license
 
-## Security and contribution
-
-Do not submit production logs, credentials, personal data, or proprietary source. Review the redaction report before sharing a capsule or HTML report. See the [security policy](SECURITY.md), [contribution guide](CONTRIBUTING.md), [threat model](docs/threat-model.md), [supply-chain guide](docs/supply-chain.md), and [roadmap](docs/roadmap.md).
-
-Competition claims, repository evidence, reproduction commands, and explicitly unfinished external work are mapped in the [review evidence index](docs/submission-evidence.md).
-
-The [final submission manifest](output/submission/README.md) covers all eight planned deliverable classes and blocks a tag Release while any external artifact or frozen commit is missing.
-
-The reproducible eight-page Chinese [project introduction PDF](output/pdf/README.md) is committed with its builder, locked artifact dependencies, rendering QA notes, and SHA-256 checksum.
-
-The [three-minute recording package](output/video/README.md) contains a machine-validated 180-second shot list and operator runbook. The Docker rehearsal and final MP4 remain explicitly pending until they are actually recorded.
+Gitee is the primary repository and the issue/contribution entry point. GitHub is a synchronized mirror. Read [CONTRIBUTING.md](CONTRIBUTING.md) and run all quality gates before submitting changes.
 
 BugCapsule is licensed under the [Apache License 2.0](LICENSE).
