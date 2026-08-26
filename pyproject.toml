@@ -47,6 +47,10 @@ dev = [
   "pytest-cov>=6.2,<8",
   "ruff>=0.12,<1",
 ]
+supply-chain = [
+  "cyclonedx-bom==7.3.1",
+  "pip-audit==2.10.1",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bugcapsule"]

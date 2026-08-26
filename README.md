@@ -29,7 +29,7 @@ BugCapsule 不会让模型直接修改主演示仓库。模型只提出带证据
 
 ```powershell
 Copy-Item .env.example .env
-uv sync --frozen --all-groups
+uv sync --frozen --group dev
 uv run bugcapsule --version
 ```
 
@@ -186,7 +186,7 @@ uv run mypy
 uv run pytest
 ```
 
-依赖解析结果提交在 `uv.lock`；CI 在 Python 3.10、3.11 和 3.12 上使用冻结锁文件执行同一组检查。
+依赖解析结果提交在 `uv.lock`；CI 在 Python 3.10、3.11 和 3.12 上使用冻结锁文件执行同一组检查。独立供应链门禁构建 wheel 与源码包、从纯生产环境生成 CycloneDX 1.6 SBOM、审计哈希锁定依赖，并为全部交付文件生成 SHA-256 清单。复现方法和安全边界见[发布供应链文档](docs/supply-chain.md)。
 
 ## 项目原则
 
@@ -201,6 +201,7 @@ uv run pytest
 - [英文简介](README.en.md)
 - [贡献指南](CONTRIBUTING.md)
 - [安全策略](SECURITY.md)
+- [发布供应链与 SBOM](docs/supply-chain.md)
 - [基准数据集](docs/benchmark.md)
 - [可用性验收协议](docs/usability-study.md)
 - [行为准则](CODE_OF_CONDUCT.md)

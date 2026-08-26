@@ -4,6 +4,12 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_call:
+
+env:
+  UV_VERSION: "0.8.13"
+  SUPPLY_CHAIN_DIR: supply-chain
+  PYTHONUTF8: "1"
 
 permissions:
   contents: read
@@ -26,10 +32,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install uv
-        run: python -m pip install "uv==0.8.13"
+        run: python -m pip install "uv==$UV_VERSION"
 
       - name: Install locked dependencies
-        run: uv sync --frozen --all-groups
+        run: uv sync --frozen --group dev
 
       - name: Lint
         run: uv run ruff check .
@@ -121,3 +127,78 @@ jobs:
           test "$code" = "503"
           grep --fixed-strings 'database_pool_exhausted' exhausted.json
           curl --fail --silent --request POST http://127.0.0.1:8766/demo/reset
+
+  supply-chain:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned uv
+        run: python -m pip install "uv==$UV_VERSION"
+
+      - name: Install locked production dependencies
+        run: uv sync --frozen --no-dev
+
+      - name: Build wheel and source archive
+        run: uv build
+
+      - name: Prepare supply-chain evidence directory
+        run: mkdir --parents "$SUPPLY_CHAIN_DIR"
+
+      - name: Export hash-locked production requirements
+        shell: bash
+        run: |
+          uv export \
+            --frozen \
+            --no-dev \
+            --no-emit-project \
+            --format requirements.txt \
+            --output-file "$SUPPLY_CHAIN_DIR/release-requirements.txt" \
+            >/dev/null
+
+      - name: Audit known dependency vulnerabilities
+        shell: bash
+        run: |
+          uv run --isolated --frozen --no-dev --group supply-chain pip-audit \
+            --require-hashes \
+            --requirement "$SUPPLY_CHAIN_DIR/release-requirements.txt" \
+            --format json \
+            --output "$SUPPLY_CHAIN_DIR/dependency-audit.json" \
+            --progress-spinner off
+
+      - name: Generate CycloneDX 1.6 SBOM
+        shell: bash
+        run: |
+          uv run --isolated --frozen --no-dev --group supply-chain cyclonedx-py environment \
+            --pyproject pyproject.toml \
+            --spec-version 1.6 \
+            --output-format JSON \
+            --output-file "$SUPPLY_CHAIN_DIR/bugcapsule.cdx.json" \
+            .venv
+
+      - name: Validate bundle and write SHA-256 manifest
+        shell: bash
+        run: |
+          .venv/bin/python -m scripts.release_integrity \
+            --dist-dir dist \
+            --sbom "$SUPPLY_CHAIN_DIR/bugcapsule.cdx.json" \
+            --audit "$SUPPLY_CHAIN_DIR/dependency-audit.json" \
+            --requirements "$SUPPLY_CHAIN_DIR/release-requirements.txt" \
+            --checksums "$SUPPLY_CHAIN_DIR/SHA256SUMS"
+
+      - name: Upload supply-chain bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: bugcapsule-supply-chain-${{ github.sha }}
+          path: |
+            dist/*
+            ${{ env.SUPPLY_CHAIN_DIR }}/*
+          if-no-files-found: error
+          retention-days: 14
