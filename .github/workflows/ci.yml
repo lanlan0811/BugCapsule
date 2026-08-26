@@ -73,6 +73,7 @@ jobs:
           trap 'rm -rf -- "$after_dir"' EXIT
           git archive HEAD | tar -x -C "$after_dir"
           git -C "$after_dir" apply verification_tests/fixtures/connection-release.diff
+          chmod 0755 "$after_dir"
 
           run_regression() {
             local source_dir="$1"
@@ -96,7 +97,7 @@ jobs:
                 set -eu
                 outcomes=0
                 for attempt in $(seq 1 20); do
-                  if /app/.venv/bin/python -m pytest verification_tests/test_connection_release.py -q -o addopts=; then
+                  if /app/.venv/bin/python -m pytest verification_tests/test_connection_release.py -q -p no:cacheprovider -o addopts=; then
                     test "$EXPECTATION" = pass || exit 1
                     outcomes=$((outcomes + 1))
                   else

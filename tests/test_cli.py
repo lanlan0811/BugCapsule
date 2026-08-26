@@ -34,7 +34,8 @@ def test_no_arguments_shows_help() -> None:
     result = runner.invoke(app)
 
     assert result.exit_code == 2
-    assert "Usage: bugcapsule" in result.stdout
+    assert "Usage:" in result.stdout
+    assert "bugcapsule" in result.stdout
 
 
 def test_serve_uses_validated_settings(

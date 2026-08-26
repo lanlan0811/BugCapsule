@@ -52,4 +52,8 @@
 - 当前仓库处于 `0.1.0` 阶段七开发，已具备从捕获到隔离验证、HTML 报告和可审计发布包的工程闭环。
 - Docker 环境实机验收、外部可用性验收和正式 Release 尚未完成。
 
+### 修复
+
+- 修复 Linux CI 中 ANSI CLI 帮助断言与非 root 验证容器无法遍历 0700 patched 临时目录的问题。
+
 [未发布]: https://gitee.com/lan0811/bug-capsule/commits/master
