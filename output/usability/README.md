@@ -9,6 +9,7 @@
 ```json
 {
   "participant_id": "P01",
+  "execution_mode": "participant_operated",
   "operating_system": "windows_11",
   "start_to_healthy_seconds": 480,
   "doctor_failed_check_ids": [],
@@ -23,6 +24,8 @@
 
 允许的操作系统：`windows_10`、`windows_11`、`linux`。
 
+执行方式只允许 `participant_operated`（参与者本人操作）或 `assistant_operated`（AI、主持人或其他人代操作）。后者是试运行记录，不得进入正式汇总，汇总器会直接拒绝。
+
 文档缺口代码：`dependency_install`、`environment_file`、`docker_startup`、`fault_capture`、`evidence_navigation`、`patch_approval`、`verification_report`，或单独使用 `none`。
 
 禁止添加姓名、账号、公司、联系方式、用户路径、密钥、设备标识和自由文本。未知字段会被拒绝。
@@ -36,6 +39,15 @@ uv run python scripts/aggregate_usability_study.py `
   --output output\usability\summary.json
 ```
 
-工具要求 3–5 个唯一匿名编号和全部发布同意，并拒绝越界值、未知枚举和输入/输出目录重叠。输出只包含群组指标，不含 `participant_id` 或逐人数据，且默认不覆盖已有结果。
+macOS / Linux：
 
-当前真实试用尚未执行，所以 `summary.json` 不存在；这正是预期状态。
+```bash
+read -r -p '请输入仓库外的响应目录: ' response_dir
+uv run python scripts/aggregate_usability_study.py \
+  --input-dir "$response_dir" \
+  --output output/usability/summary.json
+```
+
+工具要求 3–5 个唯一匿名编号、全部由参与者本人操作且全部同意发布，并拒绝试运行记录、越界值、未知枚举和输入/输出目录重叠。输出只包含群组指标，不含 `participant_id` 或逐人数据，且默认不覆盖已有结果。
+
+当前已收到一份 `assistant_operated` 试运行记录并用于改进流程，但正式独立样本尚未达到 3–5 份，因此 `summary.json` 不存在；这正是预期状态。

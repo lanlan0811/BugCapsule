@@ -10,6 +10,7 @@ from scripts.aggregate_usability_study import UsabilityStudyError, aggregate_usa
 def _response(participant_id: str, *, start: int, tasks: list[int]) -> dict[str, object]:
     return {
         "participant_id": participant_id,
+        "execution_mode": "participant_operated",
         "operating_system": "windows_11",
         "start_to_healthy_seconds": start,
         "doctor_failed_check_ids": [],
@@ -50,6 +51,7 @@ def test_aggregate_usability_study_is_deterministic_and_contains_no_rows(tmp_pat
     assert first["blocking_step_counts"] == {"6": 1}
     assert first["documentation_gap_counts"] == {"patch_approval": 1}
     assert first["privacy"]["participant_rows_included"] is False
+    assert first["privacy"]["all_sessions_participant_operated"] is True
     assert "participant_id" not in json.dumps(first)
 
 
@@ -71,12 +73,25 @@ def test_aggregate_usability_study_rejects_duplicate_participant_ids(tmp_path: P
         aggregate_usability_study(responses)
 
 
+def test_aggregate_usability_study_rejects_assistant_operated_pilot(tmp_path: Path) -> None:
+    responses = tmp_path / "responses"
+    for index in range(1, 4):
+        payload = _response(f"P{index:02d}", start=400 + index, tasks=[1])
+        if index == 2:
+            payload["execution_mode"] = "assistant_operated"
+        _write(responses, f"p{index}.json", payload)
+
+    with pytest.raises(UsabilityStudyError, match="only participant-operated sessions"):
+        aggregate_usability_study(responses)
+
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
         ("consent_to_publish_anonymized", False, "lacks consent"),
         ("documentation_gap_codes", ["none", "docker_startup"], "cannot combine"),
         ("participant_id", "Alice", "P00"),
+        ("execution_mode", "pair_operated", "execution_mode is unsupported"),
         ("notes", "contains free text", "field mismatch"),
     ],
 )

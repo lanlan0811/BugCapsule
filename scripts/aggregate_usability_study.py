@@ -12,6 +12,7 @@ from typing import Any
 
 EXPECTED_FIELDS = {
     "participant_id",
+    "execution_mode",
     "operating_system",
     "start_to_healthy_seconds",
     "doctor_failed_check_ids",
@@ -22,6 +23,7 @@ EXPECTED_FIELDS = {
     "confidence_1_to_5",
     "consent_to_publish_anonymized",
 }
+EXECUTION_MODES = {"participant_operated", "assistant_operated"}
 OPERATING_SYSTEMS = {"windows_10", "windows_11", "linux"}
 DOCUMENTATION_GAP_CODES = {
     "dependency_install",
@@ -75,6 +77,9 @@ def _load_response(path: Path) -> dict[str, Any]:
     participant_id = response["participant_id"]
     if not isinstance(participant_id, str) or PARTICIPANT_PATTERN.fullmatch(participant_id) is None:
         raise UsabilityStudyError(f"{path.name} participant_id must match P00")
+    execution_mode = response["execution_mode"]
+    if execution_mode not in EXECUTION_MODES:
+        raise UsabilityStudyError(f"{path.name} execution_mode is unsupported")
     operating_system = response["operating_system"]
     if operating_system not in OPERATING_SYSTEMS:
         raise UsabilityStudyError(f"{path.name} operating_system is unsupported")
@@ -125,6 +130,16 @@ def aggregate_usability_study(input_dir: Path) -> dict[str, Any]:
     if not 3 <= len(paths) <= 5:
         raise UsabilityStudyError("input directory must contain 3-5 JSON responses")
     responses = [_load_response(path) for path in paths]
+    non_participant_records = [
+        path.name
+        for path, response in zip(paths, responses, strict=True)
+        if response["execution_mode"] != "participant_operated"
+    ]
+    if non_participant_records:
+        raise UsabilityStudyError(
+            "formal aggregate accepts only participant-operated sessions; "
+            f"pilot records={non_participant_records}"
+        )
     participant_ids = [str(response["participant_id"]) for response in responses]
     if len(participant_ids) != len(set(participant_ids)):
         raise UsabilityStudyError("participant IDs must be unique")
@@ -169,6 +184,7 @@ def aggregate_usability_study(input_dir: Path) -> dict[str, Any]:
             "participant_rows_included": False,
             "free_text_included": False,
             "all_records_consented": True,
+            "all_sessions_participant_operated": True,
         },
     }
 

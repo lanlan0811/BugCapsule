@@ -56,7 +56,7 @@ uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay
 ## 5. 长期发展（20%）
 
 - 分层架构、版本化 Schema、OpenAI-compatible 双 API 与 `live/replay/off` 为后续演进提供稳定边界；
-- [3–5 名首次使用者协议](usability-study.md)及匿名汇总工具已经验证，真实结果外部待完成；
+- [3–5 名首次使用者协议](usability-study.md)及匿名汇总工具已经验证，已完成一份代操作试运行并据此修正文档与数据契约，正式独立样本仍为外部待完成；
 - 比赛默认 Live 模型必须单独执行 12 案例评测，不得用 Replay 替代；
 - Gitee `master` 与 GitHub 镜像同步，正式 `v0.1.0` 需在全部 Release 门槛通过后创建。
 

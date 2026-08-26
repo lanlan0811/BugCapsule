@@ -70,6 +70,15 @@ uv run bugcapsule --version
 uv run bugcapsule doctor
 ```
 
+macOS / Linux:
+
+```bash
+cp .env.example .env
+uv sync --frozen --group dev
+uv run bugcapsule --version
+uv run bugcapsule doctor
+```
+
 Configuration comes only from `.env` or `BUGCAPSULE_*` environment variables. `.env` is ignored by Git; [`.env.example`](.env.example) documents every field. `doctor` is read-only: it does not create directories, start containers, or print secret values.
 
 ### Start the local Web application
@@ -107,12 +116,9 @@ Capsule files are authoritative. SQLite stores only a rebuildable metadata index
 
 ### Analyze and propose a Patch
 
-```powershell
-uv run bugcapsule analyze <capsule-id> --mode replay
-uv run bugcapsule patch generate <capsule-id> --mode replay
-```
+Replay is exact-request playback, not a general offline model. It requires a record in `BUGCAPSULE_REPLAY_DIR` with the same request SHA-256, provider, and model name. A newly captured capsule on a fresh installation does not automatically have such records. First run Live analysis and Patch generation for that exact capsule, or use a frozen capsule supplied with its matching Replay directory and identity configuration.
 
-To enable an OpenAI-compatible live provider, configure `.env`:
+Generate and record the exact requests with Live first:
 
 ```dotenv
 BUGCAPSULE_MODEL_MODE=live
@@ -120,6 +126,26 @@ BUGCAPSULE_MODEL_API_STYLE=responses
 BUGCAPSULE_MODEL_BASE_URL=https://api.openai.com/v1
 BUGCAPSULE_MODEL_API_KEY=replace-with-your-key
 BUGCAPSULE_MODEL_NAME=replace-with-model-name
+BUGCAPSULE_REPLAY_DIR=.bugcapsule-data/replay
+```
+
+```powershell
+uv run bugcapsule analyze <capsule-id> --mode live
+uv run bugcapsule patch generate <capsule-id> --mode live
+```
+
+Then keep the same provider, model name, and Replay directory while switching the mode to `replay`:
+
+```dotenv
+BUGCAPSULE_MODEL_MODE=replay
+BUGCAPSULE_MODEL_PROVIDER=openai-compatible
+BUGCAPSULE_MODEL_NAME=replace-with-model-name
+BUGCAPSULE_REPLAY_DIR=.bugcapsule-data/replay
+```
+
+```powershell
+uv run bugcapsule analyze <capsule-id> --mode replay
+uv run bugcapsule patch generate <capsule-id> --mode replay
 ```
 
 The provider receives only redacted, prioritized evidence under a byte budget. Responses must satisfy a strict schema. An unknown evidence reference triggers one retry, then an explicit failure.
@@ -135,6 +161,17 @@ uv run bugcapsule verify <capsule-id> `
 uv run bugcapsule report <capsule-id> --output .\verification-report.html
 ```
 
+macOS / Linux:
+
+```bash
+uv run bugcapsule verify <capsule-id> \
+  --patch-id <patch-id> \
+  --approved-sha256 <full-64-character-sha256> \
+  --approve
+
+uv run bugcapsule report <capsule-id> --output ./verification-report.html
+```
+
 The verifier runs as non-root with no network, read-only mounts, `cap-drop=ALL`, `no-new-privileges`, and CPU, memory, PID, temporary-storage, and timeout limits. The report is self-contained: it loads no remote scripts, fonts, or images and remains reviewable offline.
 
 ## Open `.bugcapsule` format
@@ -147,7 +184,7 @@ See the [Capsule Schema](docs/capsule-schema.md) for field-level rules, integrit
 
 | Area | Reproducible fact |
 | --- | --- |
-| Automated tests | 195 local tests pass with 90.82% branch-aware coverage |
+| Automated tests | 197 local tests pass with 90.82% branch-aware coverage |
 | Python support | GitHub CI passes on Python 3.10, 3.11, and 3.12 |
 | Docker scenario | CI verifies HTTP readiness, `500/500/503`, the pool-exhaustion marker, and reset |
 | Fix stability | Restricted containers show 20/20 failures before and 20/20 passes after |

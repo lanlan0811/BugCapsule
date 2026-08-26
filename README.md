@@ -70,6 +70,15 @@ uv run bugcapsule --version
 uv run bugcapsule doctor
 ```
 
+macOS / Linux：
+
+```bash
+cp .env.example .env
+uv sync --frozen --group dev
+uv run bugcapsule --version
+uv run bugcapsule doctor
+```
+
 配置只从 `.env` 或 `BUGCAPSULE_*` 环境变量读取；`.env` 已被 Git 忽略。字段说明见 [`.env.example`](.env.example)。`doctor` 是只读诊断，不创建目录、不启动容器，也不输出密钥原文。
 
 ### 3. 启动 Web
@@ -107,12 +116,9 @@ uv run bugcapsule capsules show <capsule-id>
 
 ### 根因与 Patch
 
-```powershell
-uv run bugcapsule analyze <capsule-id> --mode replay
-uv run bugcapsule patch generate <capsule-id> --mode replay
-```
+Replay 是精确请求回放，不是通用离线模型。它要求 `BUGCAPSULE_REPLAY_DIR` 中已有与当前请求 SHA-256、提供方和模型名完全相同的记录；全新安装后刚捕获的胶囊不会自动具备这些记录。请先使用 Live 对同一胶囊分别执行一次分析与 Patch 生成，或使用主办方提供的冻结胶囊、匹配的 Replay 目录及对应身份配置。
 
-启用 `live` 前，在 `.env` 配置 OpenAI-compatible 提供方：
+Live 首次生成并记录精确请求：
 
 ```dotenv
 BUGCAPSULE_MODEL_MODE=live
@@ -120,6 +126,26 @@ BUGCAPSULE_MODEL_API_STYLE=responses
 BUGCAPSULE_MODEL_BASE_URL=https://api.openai.com/v1
 BUGCAPSULE_MODEL_API_KEY=replace-with-your-key
 BUGCAPSULE_MODEL_NAME=replace-with-model-name
+BUGCAPSULE_REPLAY_DIR=.bugcapsule-data/replay
+```
+
+```powershell
+uv run bugcapsule analyze <capsule-id> --mode live
+uv run bugcapsule patch generate <capsule-id> --mode live
+```
+
+之后保留相同的提供方、模型名和 Replay 目录，仅将模式切换为 `replay`：
+
+```dotenv
+BUGCAPSULE_MODEL_MODE=replay
+BUGCAPSULE_MODEL_PROVIDER=openai-compatible
+BUGCAPSULE_MODEL_NAME=replace-with-model-name
+BUGCAPSULE_REPLAY_DIR=.bugcapsule-data/replay
+```
+
+```powershell
+uv run bugcapsule analyze <capsule-id> --mode replay
+uv run bugcapsule patch generate <capsule-id> --mode replay
 ```
 
 模型只接收经过脱敏、排序和字节预算限制的证据包。响应必须通过严格 Schema；未知证据引用只重试一次，随后返回可解释错误。
@@ -135,6 +161,17 @@ uv run bugcapsule verify <capsule-id> `
 uv run bugcapsule report <capsule-id> --output .\verification-report.html
 ```
 
+macOS / Linux：
+
+```bash
+uv run bugcapsule verify <capsule-id> \
+  --patch-id <patch-id> \
+  --approved-sha256 <完整64位SHA-256> \
+  --approve
+
+uv run bugcapsule report <capsule-id> --output ./verification-report.html
+```
+
 验证容器使用非 root 用户、无网络、只读挂载、`cap-drop=ALL`、`no-new-privileges` 以及 CPU、内存、PID、临时目录和超时限制。报告是自包含 HTML，不加载远程脚本、字体或图片，可断网审阅和打印。
 
 ## 开放 `.bugcapsule` 格式
@@ -147,7 +184,7 @@ uv run bugcapsule report <capsule-id> --output .\verification-report.html
 
 | 项目 | 当前可复核事实 |
 | --- | --- |
-| 自动化测试 | 本机 195 项通过，分支覆盖率 90.82% |
+| 自动化测试 | 本机 197 项通过，分支覆盖率 90.82% |
 | Python 兼容性 | GitHub CI 在 Python 3.10、3.11、3.12 全部通过 |
 | Docker 主场景 | CI 实测 HTTP 就绪、`500/500/503`、池耗尽标识与 reset |
 | 修复稳定性 | 受限容器内修复前 20/20 失败，修复后 20/20 通过 |

@@ -15,6 +15,8 @@
 
 在录制用 Windows 10/11 与 Docker Desktop 环境执行：
 
+先为录制中使用的同一胶囊生成分析和 Patch 的精确 Replay 记录。`.env` 中必须填写 Live 提供方、模型名和本机密钥；以下两个 Live 请求都成功后，再把 `BUGCAPSULE_MODEL_MODE` 改为 `replay`，但保持 `BUGCAPSULE_MODEL_PROVIDER`、`BUGCAPSULE_MODEL_NAME` 与 `BUGCAPSULE_REPLAY_DIR` 不变。新捕获的胶囊不会复用其他胶囊或基准案例的 Replay 记录。
+
 ```powershell
 Copy-Item .env.example .env
 # 仅在本机编辑 .env，不录屏、不提交。
@@ -27,6 +29,11 @@ uv run bugcapsule doctor
 uv run bugcapsule demo up
 uv run bugcapsule demo run
 uv run bugcapsule demo capture
+uv run bugcapsule analyze <本轮胶囊ID> --mode live
+uv run bugcapsule patch generate <本轮胶囊ID> --mode live
+# 在 .env 中切换到 BUGCAPSULE_MODEL_MODE=replay 后验证精确命中：
+uv run bugcapsule analyze <本轮胶囊ID> --mode replay
+uv run bugcapsule patch generate <本轮胶囊ID> --mode replay
 uv run bugcapsule demo reset
 uv run bugcapsule benchmark build --output .\benchmark-data
 uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay

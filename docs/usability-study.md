@@ -15,6 +15,8 @@
 
 不同意匿名发布的记录不得进入汇总。参与者可随时停止，不影响其任何权益。
 
+正式样本必须由参与者本人执行所有项目命令和界面操作，记录为 `execution_mode: participant_operated`。AI 助手、主持人或其他人代为输入、运行或点击的会话只能记录为 `assistant_operated` 试运行，用于改进产品和文档，不计入 3–5 名正式样本；汇总器会拒绝此类记录。
+
 ## 3. 首次使用任务
 
 1. 在全新 Windows 10/11 或 Linux 环境克隆仓库；
@@ -26,7 +28,7 @@
 7. 明确批准并运行隔离验证，下载 HTML 报告；
 8. 执行 reset，确认场景可以再次运行。
 
-计时从开始阅读 README 到 Web 健康检查成功。参与者首次卡住时主持人保持观察；持续 3 分钟后才可给最小提示，并增加 `hint_count`、记录对应 `blocking_step`。
+计时从开始阅读 README 到 Web 健康检查成功。参与者首次卡住时主持人保持观察；持续 3 分钟后才可给最小提示，并增加 `hint_count`、记录对应 `blocking_step`。提示只能指出应重读的 README 小节或任务目标，不能替参与者操作。
 
 ## 4. 记录与汇总
 
@@ -39,10 +41,19 @@ uv run python scripts/aggregate_usability_study.py `
   --output output\usability\summary.json
 ```
 
-汇总器拒绝未知字段、自由文本、重复参与者、越界值、未同意记录和非 3–5 人输入。输出只保留群组规模、系统分布、中位启动时间、任务完成率、失败检查、阻塞步骤、文档缺口、信心和提示数，不包含逐人记录。
+macOS / Linux：
+
+```bash
+read -r -p '请输入仓库外的响应目录: ' response_dir
+uv run python scripts/aggregate_usability_study.py \
+  --input-dir "$response_dir" \
+  --output output/usability/summary.json
+```
+
+汇总器拒绝未知字段、自由文本、重复参与者、越界值、未同意记录、非参与者本人操作记录和非 3–5 人输入。输出只保留群组规模、系统分布、中位启动时间、任务完成率、失败检查、阻塞步骤、文档缺口、信心和提示数，不包含逐人记录。
 
 ## 5. 验收与改进
 
 维护者在提交汇总前核对：输入均有同意、输出不含个体标识、结果与原始结构化记录一致。对高频文档缺口先修正文档，再邀请至少一名新参与者复核受影响步骤；原有结果不回填、不覆盖。
 
-真实试用前不得创建占位 `summary.json`。当前状态为外部待完成。
+达到 3–5 份有效 `participant_operated` 记录前不得创建占位 `summary.json`。当前已有试运行反馈，但正式独立样本仍为外部待完成。
