@@ -16,12 +16,7 @@ BugCapsule 是一款以运行时证据为核心、能够验证修复结果的开
 
 它解决的不是“让模型直接改代码”，而是建立一条受约束的工程闭环：
 
-```text
-故障注入 → Trace / Log / Source / Git → .bugcapsule
-        → 证据约束根因 → Evidence-bound Patch
-        → 人工核对 Patch ID + SHA-256
-        → 受限 Docker 前后回归 → 自包含 HTML 报告
-```
+![BugCapsule 从故障注入到隔离验证的证据约束流程](docs/assets/brand/bugcapsule-workflow.svg)
 
 主演示聚焦一个真实、可重复的场景：FastAPI 订单服务因异常路径保留 SQLAlchemy Session，固定为 2 的 PostgreSQL 连接池在第三次请求稳定返回 `HTTP 503 / database_pool_exhausted`。
 
@@ -208,4 +203,6 @@ BugCapsule 仍处于 `0.1.0` 开发状态。Linux Docker CI、开源治理、PDF
 
 Gitee 是主仓、Issue 和贡献入口；GitHub 是同步镜像。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，并运行完整质量门禁。
 
-BugCapsule 基于 [Apache License 2.0](LICENSE) 开源。
+项目作品版权归属：Copyright © 2026 **lan0811 与 BugCapsule contributors**。初始开发者与维护者为 **lan0811**。
+
+BugCapsule 原创源代码、文档与视觉资产基于 [Apache License 2.0](LICENSE) 开源；第三方组件版权与许可见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES) 和 [NOTICE](NOTICE)。

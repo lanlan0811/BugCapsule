@@ -16,13 +16,7 @@ BugCapsule is an open-source AI debugging tool built around runtime evidence and
 
 The project does not let a model edit the main workspace. It implements a constrained engineering loop:
 
-```text
-fault injection → Trace / Log / Source / Git → .bugcapsule
-               → evidence-bound root cause → constrained Patch
-               → human review of Patch ID + SHA-256
-               → restricted before/after Docker regression
-               → self-contained HTML report
-```
+![BugCapsule evidence-bound flow from fault injection to isolated verification](docs/assets/brand/bugcapsule-workflow.svg)
 
 The primary demo focuses on one reproducible failure: a FastAPI order service retains SQLAlchemy sessions on an exception path. A PostgreSQL pool fixed at two connections deterministically returns `HTTP 503 / database_pool_exhausted` on the third request.
 
@@ -209,4 +203,6 @@ BugCapsule remains a `0.1.0` development release. Linux Docker CI, governance, t
 
 Gitee is the primary repository and the issue/contribution entry point. GitHub is a synchronized mirror. Read [CONTRIBUTING.md](CONTRIBUTING.md) and run all quality gates before submitting changes.
 
-BugCapsule is licensed under the [Apache License 2.0](LICENSE).
+Project copyright: Copyright © 2026 **lan0811 and BugCapsule contributors**. The original developer and maintainer is **lan0811**.
+
+BugCapsule's original source code, documentation, and visual assets are licensed under the [Apache License 2.0](LICENSE). Third-party copyrights and license terms are listed in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES) and [NOTICE](NOTICE).
