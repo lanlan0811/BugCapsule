@@ -12,8 +12,8 @@ from bugcapsule.benchmarking.evaluation import EvaluationError
 from bugcapsule.benchmarking.schema import EvaluationMetrics, EvaluationReport
 from bugcapsule.capsule.capture import CaptureError
 from bugcapsule.cli import app
-from bugcapsule.config import get_settings
-from bugcapsule.demo.controller import DemoControlError, DemoRunResult
+from bugcapsule.config import Settings, get_settings
+from bugcapsule.demo.controller import DemoControlError, DemoRunResult, DemoTelemetrySyncResult
 from bugcapsule.diagnostics import DoctorCheck, DoctorReport
 from bugcapsule.index import CapsuleIndexError
 from bugcapsule.patching.service import PatchGenerationError
@@ -138,6 +138,58 @@ def test_demo_command_reports_control_error(monkeypatch: pytest.MonkeyPatch) -> 
     result = runner.invoke(app, ["demo", "up"])
 
     assert result.exit_code == 1
+
+
+def test_demo_capture_syncs_then_indexes_capsule(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    telemetry_dir = (tmp_path / "demo").resolve()
+    destination = tmp_path / "capsules" / "cap_demo.bugcapsule"
+    settings = Settings(data_dir=tmp_path, demo_telemetry_dir=telemetry_dir)
+
+    class SyncingController:
+        def sync_telemetry(self) -> DemoTelemetrySyncResult:
+            return DemoTelemetrySyncResult("a" * 32, telemetry_dir)
+
+    class FakeCaptureService:
+        def capture(self, trace_id: str) -> Path:
+            assert trace_id == "a" * 32
+            return destination
+
+    class FakeIndex:
+        def upsert(self, source: Path) -> None:
+            assert source == destination
+
+    monkeypatch.setattr("bugcapsule.cli.get_settings", lambda: settings)
+    monkeypatch.setattr("bugcapsule.cli.get_demo_controller", SyncingController)
+    monkeypatch.setattr("bugcapsule.cli.CaptureService", lambda _: FakeCaptureService())
+    monkeypatch.setattr("bugcapsule.cli.CapsuleIndex.from_settings", lambda _: FakeIndex())
+
+    result = runner.invoke(app, ["demo", "capture"])
+
+    assert result.exit_code == 0
+    assert "trace_id=" + "a" * 32 in result.stdout
+    assert str(destination) in result.stdout
+
+
+def test_demo_capture_rejects_mismatched_telemetry_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    settings = Settings(data_dir=tmp_path, demo_telemetry_dir=tmp_path / "expected")
+
+    class MismatchedController:
+        def sync_telemetry(self) -> DemoTelemetrySyncResult:
+            return DemoTelemetrySyncResult("a" * 32, (tmp_path / "other").resolve())
+
+    monkeypatch.setattr("bugcapsule.cli.get_settings", lambda: settings)
+    monkeypatch.setattr("bugcapsule.cli.get_demo_controller", MismatchedController)
+
+    result = runner.invoke(app, ["demo", "capture"])
+
+    assert result.exit_code == 1
+    assert "目录不一致" in result.stderr
 
 
 def test_capture_command_prints_destination(

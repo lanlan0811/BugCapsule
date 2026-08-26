@@ -27,7 +27,7 @@ uv run pytest tests/capsule tests/analysis tests/patching tests/verification -o 
 
 ## 场景落地（30%）
 
-- FastAPI + PostgreSQL 使用 `pool_size=2`、`max_overflow=0`，前两次异常请求保留 Session，第三次稳定返回池耗尽。逻辑和状态机已验证；当前开发机缺少 Docker CLI，Compose 实机结果仍待 CI/外部环境确认。状态：部分验证。
+- FastAPI + PostgreSQL 使用 `pool_size=2`、`max_overflow=0`，前两次异常请求保留 Session，第三次稳定返回池耗尽；`demo capture` 受控同步命名卷证据并生成索引胶囊。逻辑、同步校验和状态机已验证；当前开发机缺少 Docker CLI，Compose 实机结果仍待 CI/外部环境确认。状态：部分验证。
 - Trace、Span、日志、Stack Trace、源码、Git 和环境由同一 Trace Context 关联；SQLite 只是可重建索引，胶囊是事实源。状态：已验证。
 - CLI、Jinja2/HTMX Web 与自包含 HTML 报告读取同一 `CapsuleDetail`，报告无外部脚本、字体或网络资源。状态：已验证。
 - 12 案例仿真基准的注释回放实测 Top-1、引用有效率、Trace/日志/源码必需证据覆盖率均为 100%；该结果只证明确定性管线和评分器，不代表 Live 模型能力。状态：已验证。

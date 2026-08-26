@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from bugcapsule import __version__
 from bugcapsule.analysis.service import AnalysisError, AnalysisService
+from bugcapsule.capsule.capture import CaptureError, CaptureService
 from bugcapsule.config import Settings, get_settings
 from bugcapsule.demo.config import DemoSettings
 from bugcapsule.demo.controller import DemoControlError, DemoController
@@ -71,6 +72,7 @@ def create_app(
     settings: Settings | None = None,
     capsule_index: CapsuleIndex | None = None,
     demo_controller: DemoController | None = None,
+    capture_service: CaptureService | None = None,
     analysis_service: AnalysisService | None = None,
     patch_service: PatchGenerationService | None = None,
     verification_service: VerificationService | None = None,
@@ -422,6 +424,41 @@ def create_app(
             request=request,
             name="partials/demo_result.html",
             context={"request": request, "reset": True},
+        )
+
+    @application.post("/demo/capture", response_class=HTMLResponse, tags=["demo"])
+    def capture_demo(request: Request) -> Response:
+        _require_local_origin(request)
+        try:
+            controller = demo_controller or DemoController(DemoSettings())
+            synchronized = controller.sync_telemetry()
+            if synchronized.telemetry_dir != runtime_settings.demo_telemetry_dir.resolve():
+                raise DemoControlError("演示证据目录与应用捕获目录不一致")
+            service = capture_service or CaptureService(runtime_settings)
+            destination = service.capture(synchronized.trace_id)
+            index.upsert(destination)
+        except (
+            DemoControlError,
+            CaptureError,
+            CapsuleIndexError,
+            ValidationError,
+        ) as exc:
+            return templates.TemplateResponse(
+                request=request,
+                name="partials/demo_result.html",
+                context={"request": request, "error": str(exc)},
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            )
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/demo_result.html",
+            context={
+                "request": request,
+                "capture": {
+                    "capsule_id": destination.stem,
+                    "trace_id": synchronized.trace_id,
+                },
+            },
         )
 
     return application

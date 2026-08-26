@@ -11,8 +11,14 @@ from bugcapsule.analysis.request import AnalysisRequest
 from bugcapsule.analysis.schema import ModelAnalysisResponse, ModelRootCause
 from bugcapsule.analysis.service import AnalysisService
 from bugcapsule.app import create_app
+from bugcapsule.capsule.capture import CaptureService
 from bugcapsule.config import Settings
-from bugcapsule.demo.controller import DemoControlError, DemoController, DemoRunResult
+from bugcapsule.demo.controller import (
+    DemoControlError,
+    DemoController,
+    DemoRunResult,
+    DemoTelemetrySyncResult,
+)
 from bugcapsule.index import CapsuleIndex
 from bugcapsule.patching.request import PatchRequest
 from bugcapsule.patching.schema import ModelPatchResponse
@@ -368,16 +374,40 @@ def test_demo_controls_return_htmx_status_and_report_controller_errors(tmp_path:
             self.actions.append("reset")
             return {"state": "ready"}
 
+        def sync_telemetry(self) -> DemoTelemetrySyncResult:
+            self.actions.append("capture")
+            return DemoTelemetrySyncResult("a" * 32, settings.demo_telemetry_dir.resolve())
+
+    class FakeCaptureService:
+        def capture(self, trace_id: str) -> Path:
+            assert trace_id == "a" * 32
+            return capsule_path
+
     _, index = make_web_app(tmp_path)
-    settings = Settings(data_dir=tmp_path / "data", display_timezone="UTC")
+    settings = Settings(
+        data_dir=tmp_path / "data",
+        demo_telemetry_dir=tmp_path / "data" / "demo",
+        display_timezone="UTC",
+    )
+    capsule_path, _ = make_stage_three_capsule(
+        index.capsules_dir,
+        filename="cap_web_capture.bugcapsule",
+        capsule_id="cap_web_capture",
+    )
     controller = FakeDemoController()
-    application = create_app(settings, index, cast(DemoController, controller))
+    application = create_app(
+        settings,
+        index,
+        cast(DemoController, controller),
+        capture_service=cast(CaptureService, FakeCaptureService()),
+    )
 
     async def request_controls() -> tuple[httpx.Response, ...]:
         transport = httpx.ASGITransport(app=application)
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             page = await client.get("/demo")
             run = await client.post("/demo/run", headers={"Origin": "http://testserver"})
+            capture = await client.post("/demo/capture", headers={"Origin": "http://testserver"})
             reset = await client.post("/demo/reset", headers={"Origin": "http://testserver"})
             rejected = await client.post(
                 "/demo/reset",
@@ -385,17 +415,21 @@ def test_demo_controls_return_htmx_status_and_report_controller_errors(tmp_path:
             )
             controller.fail = True
             failed = await client.post("/demo/run", headers={"Origin": "http://testserver"})
-        return page, run, reset, rejected, failed
+        return page, run, capture, reset, rejected, failed
 
-    page, run, reset, rejected, failed = asyncio.run(request_controls())
+    page, run, capture, reset, rejected, failed = asyncio.run(request_controls())
 
     assert page.status_code == 200
     assert 'hx-post="/demo/run"' in page.text
+    assert 'hx-post="/demo/capture"' in page.text
     assert run.status_code == 200
     assert "500 → 500 → 503" in run.text
+    assert capture.status_code == 200
+    assert "/capsules/cap_web_capture" in capture.text
+    assert "a" * 32 in capture.text
     assert reset.status_code == 200
     assert "连接池恢复为 ready" in reset.text
     assert rejected.status_code == 403
     assert failed.status_code == 503
     assert "Docker unavailable" in failed.text
-    assert controller.actions == ["run", "reset", "run"]
+    assert controller.actions == ["run", "capture", "reset", "run"]

@@ -1,5 +1,6 @@
 """Tests for safe Docker and HTTP demo orchestration."""
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -74,3 +75,126 @@ def test_compose_reports_missing_docker(tmp_path: Path, monkeypatch: pytest.Monk
 
     with pytest.raises(DemoControlError, match="Docker CLI"):
         controller.up()
+
+
+def test_sync_telemetry_uses_compose_cp_and_returns_latest_exhaustion_trace(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compose_file = tmp_path / "compose.yml"
+    compose_file.write_text("services: {}", encoding="utf-8")
+    telemetry_dir = tmp_path / "telemetry"
+    settings = make_settings(compose_file).model_copy(update={"telemetry_dir": telemetry_dir})
+    commands: list[object] = []
+
+    def runner(command: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        telemetry_dir.mkdir(parents=True, exist_ok=True)
+        rows = [
+            {"fault": "database_pool_exhausted", "trace_id": "1" * 32},
+            {"fault": "injected_request_failure", "trace_id": "2" * 32},
+            {"fault": "database_pool_exhausted", "trace_id": "3" * 32},
+        ]
+        (telemetry_dir / "logs.jsonl").write_text(
+            "".join(f"{json.dumps(row)}\n" for row in rows),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess([], 0, "", "")
+
+    monkeypatch.setattr("bugcapsule.demo.controller.shutil.which", lambda _: "docker.exe")
+    result = DemoController(settings, command_runner=runner).sync_telemetry()
+
+    assert result.trace_id == "3" * 32
+    assert result.telemetry_dir == telemetry_dir.resolve()
+    assert commands == [
+        (
+            "docker.exe",
+            "compose",
+            "--file",
+            str(compose_file.resolve()),
+            "cp",
+            "order-service:/var/lib/bugcapsule/.",
+            str(telemetry_dir.resolve()),
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        ("not-json\n", "有效 JSONL"),
+        (json.dumps({"fault": "database_pool_exhausted", "trace_id": "invalid"}), "Trace ID"),
+        (json.dumps({"fault": "injected_request_failure", "trace_id": "1" * 32}), "没有"),
+    ],
+)
+def test_sync_telemetry_rejects_unusable_fault_logs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    content: str,
+    message: str,
+) -> None:
+    compose_file = tmp_path / "compose.yml"
+    compose_file.write_text("services: {}", encoding="utf-8")
+    telemetry_dir = tmp_path / "telemetry"
+    settings = make_settings(compose_file).model_copy(update={"telemetry_dir": telemetry_dir})
+
+    def runner(command: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        telemetry_dir.mkdir(parents=True, exist_ok=True)
+        (telemetry_dir / "logs.jsonl").write_text(content, encoding="utf-8")
+        return subprocess.CompletedProcess([], 0, "", "")
+
+    monkeypatch.setattr("bugcapsule.demo.controller.shutil.which", lambda _: "docker.exe")
+
+    with pytest.raises(DemoControlError, match=message):
+        DemoController(settings, command_runner=runner).sync_telemetry()
+
+
+@pytest.mark.parametrize(
+    ("content", "settings_update", "message"),
+    [
+        ("[]\n", {}, "不是 JSON 对象"),
+        (" " * 1025, {"telemetry_sync_max_bytes": 1024}, "超过"),
+    ],
+)
+def test_sync_telemetry_rejects_non_object_and_oversized_logs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    content: str,
+    settings_update: dict[str, object],
+    message: str,
+) -> None:
+    compose_file = tmp_path / "compose.yml"
+    compose_file.write_text("services: {}", encoding="utf-8")
+    telemetry_dir = tmp_path / "telemetry"
+    settings = make_settings(compose_file).model_copy(
+        update={"telemetry_dir": telemetry_dir, **settings_update}
+    )
+
+    def runner(command: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        telemetry_dir.mkdir(parents=True, exist_ok=True)
+        (telemetry_dir / "logs.jsonl").write_text(content, encoding="utf-8")
+        return subprocess.CompletedProcess([], 0, "", "")
+
+    monkeypatch.setattr("bugcapsule.demo.controller.shutil.which", lambda _: "docker.exe")
+
+    with pytest.raises(DemoControlError, match=message):
+        DemoController(settings, command_runner=runner).sync_telemetry()
+
+
+def test_sync_telemetry_requires_copied_log_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compose_file = tmp_path / "compose.yml"
+    compose_file.write_text("services: {}", encoding="utf-8")
+    settings = make_settings(compose_file).model_copy(
+        update={"telemetry_dir": tmp_path / "telemetry"}
+    )
+    monkeypatch.setattr("bugcapsule.demo.controller.shutil.which", lambda _: "docker.exe")
+    controller = DemoController(
+        settings,
+        command_runner=lambda *args, **kwargs: subprocess.CompletedProcess([], 0, "", ""),
+    )
+
+    with pytest.raises(DemoControlError, match="缺少"):
+        controller.sync_telemetry()

@@ -4,4 +4,6 @@
 <div class="notice notice-info" role="status"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg><div><strong>演示已重置</strong><p>泄漏 Session 已释放，连接池恢复为 ready。</p></div></div>
 {% elif result %}
 <div class="notice notice-error" role="status"><svg class="icon" aria-hidden="true"><use href="#icon-warning"></use></svg><div><strong>故障复现成功</strong><p><code>HTTP {{ result.first_status }} → {{ result.second_status }} → {{ result.exhausted_status }}</code>；<code>{{ result.fault }}</code></p></div></div>
+{% elif capture %}
+<div class="notice notice-success" role="status"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg><div><strong>演示胶囊已生成</strong><p>Trace <code>{{ capture.trace_id }}</code> 已完成同步、脱敏与完整性校验。</p><a class="btn btn-secondary" href="/capsules/{{ capture.capsule_id }}">打开证据链</a></div></div>
 {% endif %}

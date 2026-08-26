@@ -31,6 +31,8 @@ SQLite 元数据索引    EvidenceChain
 
 主演示服务通过 OpenTelemetry FastAPI 与 SQLAlchemy instrumentation 记录 HTTP 和数据库 Span。标准日志在写入前注入当前 `trace_id`、`span_id`，并与 Span 使用同一脱敏器。证据仅写入配置的本地数据目录。
 
+Compose 运行时证据位于订单容器的命名卷。`demo capture` 只以参数数组执行 `docker compose cp`，从环境配置的服务名与绝对容器目录同步到本地证据目录；同步后限制日志字节数，拒绝符号链接、无效 JSONL、非对象记录和无合法 32 位十六进制 Trace ID 的池耗尽记录。CLI 与 Web 随后调用同一个 `CaptureService` 和 `CapsuleIndex`，使“触发故障 → 同步证据 → 生成胶囊”成为可直接执行的闭环。
+
 ### 故障胶囊
 
 胶囊是采用确定性成员顺序、时间戳和权限写出的 ZIP_STORED 归档。`manifest.json` 记录 Schema 版本、服务、Trace、Git、环境及每个 payload 的大小、媒体类型和 SHA-256。导入器在读取内容前限制文件数、单文件大小、总展开大小与压缩比，并拒绝绝对路径、路径穿越、目录、符号链接、加密成员、重复成员和未知压缩方式。

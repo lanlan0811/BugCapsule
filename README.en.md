@@ -33,16 +33,18 @@ Start and reproduce the controlled PostgreSQL connection-pool failure:
 ```powershell
 uv run bugcapsule demo up
 uv run bugcapsule demo run
+uv run bugcapsule demo capture
 uv run bugcapsule demo reset
 ```
 
-Use the Trace ID produced by the demo to capture and inspect a capsule:
+`demo capture` copies the already-redacted telemetry from the Compose volume with an argument-list invocation, rejects malformed or oversized logs, selects the latest pool-exhaustion Trace, and generates an indexed capsule. Inspect it with:
 
 ```powershell
-uv run bugcapsule capture --trace-id <32-lowercase-hex-trace-id>
 uv run bugcapsule capsules list
 uv run bugcapsule capsules show <capsule-id>
 ```
+
+The lower-level `capture --trace-id` command remains available when the order service writes telemetry directly to the host directory.
 
 ## Analysis, Patch, verification, and report
 

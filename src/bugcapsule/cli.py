@@ -343,6 +343,22 @@ def demo_run() -> None:
     )
 
 
+@demo_app.command("capture")
+def demo_capture() -> None:
+    """同步容器证据并捕获最新的连接池耗尽胶囊。"""
+    settings = get_settings()
+    try:
+        synchronized = get_demo_controller().sync_telemetry()
+        if synchronized.telemetry_dir != settings.demo_telemetry_dir.resolve():
+            raise DemoControlError("演示证据目录与应用捕获目录不一致")
+        destination = CaptureService(settings).capture(synchronized.trace_id)
+        CapsuleIndex.from_settings(settings).upsert(destination)
+    except (DemoControlError, CaptureError, CapsuleIndexError, ValidationError) as exc:
+        typer.echo(f"演示捕获失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"演示胶囊已生成：trace_id={synchronized.trace_id}；path={destination}")
+
+
 @demo_app.command("reset")
 def demo_reset() -> None:
     """释放泄漏 Session 并恢复连接池。"""

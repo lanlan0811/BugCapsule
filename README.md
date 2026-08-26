@@ -65,9 +65,10 @@ uv run bugcapsule demo up
 
 ```powershell
 uv run bugcapsule demo run
+uv run bugcapsule demo capture
 ```
 
-前两次请求在注入的异常路径中保留数据库 Session，第三次返回 `503` 与 `database_pool_exhausted`。可查询并重置确定性状态：
+前两次请求在注入的异常路径中保留数据库 Session，第三次返回 `503` 与 `database_pool_exhausted`。`demo capture` 会用参数数组调用 `docker compose cp`，将命名卷中的已脱敏 Trace/日志同步到 `BUGCAPSULE_DEMO_TELEMETRY_DIR`，选择最新池耗尽 Trace，生成并索引可校验胶囊。可查询并重置确定性状态：
 
 ```powershell
 curl.exe http://127.0.0.1:8766/demo/status
@@ -87,9 +88,9 @@ uv run bugcapsule demo down
 .bugcapsule-data/demo/redaction-findings.jsonl
 ```
 
-每条故障日志携带与 HTTP/数据库 Span 一致的 `trace_id` 和 `span_id`。Docker 模式使用 `demo-telemetry-data` 命名卷保存这些证据。
+每条故障日志携带与 HTTP/数据库 Span 一致的 `trace_id` 和 `span_id`。Docker 模式使用 `demo-telemetry-data` 命名卷保存这些证据；Web 演示页的“同步并捕获”和 CLI `demo capture` 会通过固定服务名、固定容器目录和可配置字节上限安全同步，拒绝无效 JSONL 或无有效 Trace ID 的记录。
 
-从故障日志中取得 32 位 Trace ID 后，可生成开放胶囊：
+仅在订单服务以宿主机进程运行、证据已直接落到本地目录时，才需要从故障日志中取得 32 位 Trace ID 并手动捕获：
 
 ```powershell
 uv run bugcapsule capture --trace-id <trace-id>

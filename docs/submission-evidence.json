@@ -53,10 +53,12 @@
             "compose.yml",
             "src/bugcapsule/demo/app.py",
             "src/bugcapsule/demo/database.py",
+            "src/bugcapsule/demo/controller.py",
             "tests/demo/test_database.py",
+            "tests/demo/test_controller.py",
             ".github/workflows/ci.yml"
           ],
-          "verification": "docker compose up --build --detach --wait；随后 uv run bugcapsule demo run",
+          "verification": "docker compose up --build --detach --wait；随后 uv run bugcapsule demo run 和 uv run bugcapsule demo capture",
           "status": "partially_verified"
         },
         {

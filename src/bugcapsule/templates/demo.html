@@ -12,6 +12,7 @@
     <pre class="command-block"><code>bugcapsule demo up</code></pre>
     <div class="demo-actions">
       <button class="btn btn-primary" type="button" hx-post="/demo/run" hx-target="#demo-result" hx-disabled-elt="this">{{ icon('activity') }}触发故障</button>
+      <button class="btn btn-secondary" type="button" hx-post="/demo/capture" hx-target="#demo-result" hx-disabled-elt="this">{{ icon('archive') }}同步并捕获</button>
       <button class="btn btn-secondary" type="button" hx-post="/demo/reset" hx-target="#demo-result" hx-disabled-elt="this">{{ icon('replay') }}重置演示</button>
       <span class="htmx-indicator">正在执行</span>
     </div>
@@ -20,6 +21,7 @@
       <li><span>1</span><div><strong>第一次泄漏请求</strong><code>HTTP 500 · injected_request_failure</code></div></li>
       <li><span>2</span><div><strong>第二次泄漏请求</strong><code>HTTP 500 · injected_request_failure</code></div></li>
       <li><span>3</span><div><strong>连接池耗尽</strong><code>HTTP 503 · database_pool_exhausted</code></div></li>
+      <li><span>4</span><div><strong>同步并捕获</strong><code>Docker volume → verified .bugcapsule</code></div></li>
     </ol>
   </section>
   <aside class="card context-card">
