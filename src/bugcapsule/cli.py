@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from bugcapsule import __version__
 from bugcapsule.analysis.service import AnalysisError, AnalysisService
+from bugcapsule.benchmarking.dataset import BenchmarkDatasetBuilder, BenchmarkDatasetError
 from bugcapsule.capsule.capture import CaptureError, CaptureService
 from bugcapsule.capsule.identifiers import canonical_json
 from bugcapsule.config import Settings, get_settings
@@ -29,10 +30,12 @@ demo_app = typer.Typer(help="管理可重复的数据库连接池故障演示。
 index_app = typer.Typer(help="重建本地胶囊元数据索引。", no_args_is_help=True)
 capsules_app = typer.Typer(help="查询已索引的故障胶囊。", no_args_is_help=True)
 patch_app = typer.Typer(help="生成并检查证据约束的修复 Patch。", no_args_is_help=True)
+benchmark_app = typer.Typer(help="构建并评测版本化仿真胶囊数据集。", no_args_is_help=True)
 app.add_typer(demo_app, name="demo")
 app.add_typer(index_app, name="index")
 app.add_typer(capsules_app, name="capsules")
 app.add_typer(patch_app, name="patch")
+app.add_typer(benchmark_app, name="benchmark")
 
 
 def version_callback(value: bool) -> None:
@@ -182,6 +185,26 @@ def report(
         raise typer.Exit(code=1) from exc
     typer.echo(f"报告已写入：{destination}")
     typer.echo(f"SHA-256：{rendered.sha256}")
+
+
+@benchmark_app.command("build")
+def benchmark_build(
+    output: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="写入 annotations.json 与 capsules/ 的目录。"),
+    ],
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="显式覆盖已存在的同名基准文件。"),
+    ] = False,
+) -> None:
+    """确定性生成 12 个带人工标注的仿真故障胶囊。"""
+    try:
+        result = BenchmarkDatasetBuilder().build(output, overwrite=force)
+    except (BenchmarkDatasetError, OSError) as exc:
+        typer.echo(f"基准数据集构建失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(canonical_json(result.to_dict()).decode("utf-8"))
 
 
 @index_app.command("rebuild")

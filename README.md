@@ -158,6 +158,16 @@ uv run bugcapsule report <capsule-id> --output .\verification-report.html
 
 报告只从重新校验后的 `CapsuleDetail` 生成，包含证据链、根因候选、canonical unified diff、安全检查、批准绑定、修复前后脱敏输出及归档完整性。它不加载外部脚本、样式、字体或图片，可断网查看和打印；默认拒绝覆盖现有文件，确需覆盖时显式传入 `--force`。
 
+## 仿真基准数据集
+
+构建随包发布的 12 个带人工标注胶囊：
+
+```powershell
+uv run bugcapsule benchmark build --output .\benchmark-data
+```
+
+数据集平均覆盖连接泄漏、数据库不可达和慢查询，生成结果包含标注文件 SHA-256，且所有案例明确标记为仿真数据。格式、标注规则和复现约束见[基准数据集文档](docs/benchmark.md)。
+
 ## 质量检查
 
 ```powershell
@@ -182,6 +192,7 @@ uv run pytest
 - [英文简介](README.en.md)
 - [贡献指南](CONTRIBUTING.md)
 - [安全策略](SECURITY.md)
+- [基准数据集](docs/benchmark.md)
 - [行为准则](CODE_OF_CONDUCT.md)
 - [变更记录](CHANGELOG.md)
 

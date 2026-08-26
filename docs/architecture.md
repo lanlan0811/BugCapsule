@@ -82,6 +82,10 @@ Web 服务仅允许配置为 `127.0.0.1` 或 `localhost`，并校验 Host。页�
 
 HTML 内联 Design System 样式与 SVG 标志，不包含外部资源或脚本，并同时设置严格 CSP、`nosniff` 和 `no-store` 交付头。Jinja 自动转义覆盖模型文本、日志和证据内容。CLI 默认拒绝覆盖已有报告，Web 以附件形式下载同一组确定性字节。
 
+### 版本化基准数据集
+
+`benchmarking/dataset.json` 是人工标注的权威输入，Schema 强制至少 12 个案例，并要求连接泄漏、数据库不可达和慢查询各不少于 4 个。`BenchmarkDatasetBuilder` 仅从该输入派生时间、Trace/Span、Git 与 Evidence 标识，生成可逐项导入校验且跨目录字节一致的胶囊。标注文件与生成结果保持独立，后续指标通过标注 SHA-256 绑定具体数据版本。
+
 ## 事实一致性
 
 CLI `capsules list/show`、Web 页面和 HTML 报告都从 `CapsuleSummary`、`CapsuleDetail` 与 `EvidenceChain` 读取数据。共享视图模型只负责中文标签、时间格式和展示摘要，不创建新的状态或分析结论。

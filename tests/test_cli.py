@@ -7,6 +7,7 @@ from typer.testing import CliRunner
 
 from bugcapsule import __version__
 from bugcapsule.analysis.service import AnalysisError
+from bugcapsule.benchmarking.dataset import BenchmarkBuildResult, BenchmarkDatasetError
 from bugcapsule.capsule.capture import CaptureError
 from bugcapsule.cli import app
 from bugcapsule.config import get_settings
@@ -323,6 +324,37 @@ def test_report_command_writes_deterministic_html_and_refuses_implicit_overwrite
     failed = runner.invoke(app, ["report", "cap_stage3_0001"])
     assert failed.exit_code == 1
     assert "报告生成失败" in failed.stderr
+
+
+def test_benchmark_build_command_emits_summary_and_safe_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class FakeBuilder:
+        def build(self, output: Path, *, overwrite: bool) -> BenchmarkBuildResult:
+            assert output == tmp_path / "benchmark"
+            assert overwrite is True
+            return BenchmarkBuildResult(output, "a" * 64, 12, {"connection_leak": 4})
+
+    monkeypatch.setattr("bugcapsule.cli.BenchmarkDatasetBuilder", FakeBuilder)
+    result = runner.invoke(
+        app,
+        ["benchmark", "build", "--output", str(tmp_path / "benchmark"), "--force"],
+    )
+    assert result.exit_code == 0
+    assert '"case_count":12' in result.stdout
+
+    class FailingBuilder:
+        def build(self, output: Path, *, overwrite: bool) -> BenchmarkBuildResult:
+            raise BenchmarkDatasetError("unsafe output")
+
+    monkeypatch.setattr("bugcapsule.cli.BenchmarkDatasetBuilder", FailingBuilder)
+    failed = runner.invoke(
+        app,
+        ["benchmark", "build", "--output", str(tmp_path / "benchmark")],
+    )
+    assert failed.exit_code == 1
+    assert "基准数据集构建失败" in failed.stderr
 
 
 def test_index_and_capsule_query_commands_emit_deterministic_json(
