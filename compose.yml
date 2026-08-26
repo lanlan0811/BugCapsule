@@ -29,6 +29,9 @@ services:
       BUGCAPSULE_DEMO_POOL_SIZE: ${BUGCAPSULE_DEMO_POOL_SIZE:-2}
       BUGCAPSULE_DEMO_MAX_OVERFLOW: ${BUGCAPSULE_DEMO_MAX_OVERFLOW:-0}
       BUGCAPSULE_DEMO_POOL_TIMEOUT_SECONDS: ${BUGCAPSULE_DEMO_POOL_TIMEOUT_SECONDS:-1.0}
+      BUGCAPSULE_DEMO_TELEMETRY_ENABLED: ${BUGCAPSULE_DEMO_TELEMETRY_ENABLED:-true}
+      BUGCAPSULE_DEMO_TELEMETRY_DIR: /var/lib/bugcapsule
+      BUGCAPSULE_DEMO_SERVICE_NAME: ${BUGCAPSULE_DEMO_SERVICE_NAME:-demo-order-api}
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,6 +45,8 @@ services:
     security_opt:
       - no-new-privileges:true
     pids_limit: 128
+    volumes:
+      - demo-telemetry-data:/var/lib/bugcapsule
     networks:
       - demo-internal
 
@@ -51,3 +56,4 @@ networks:
 
 volumes:
   demo-postgres-data:
+  demo-telemetry-data:

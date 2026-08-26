@@ -68,6 +68,18 @@ uv run bugcapsule demo down
 
 所有端口只映射到宿主机 `127.0.0.1`。订单容器以非 root 用户、只读根文件系统、移除 Linux capabilities 且启用 `no-new-privileges` 运行。
 
+### 运行时证据
+
+订单服务默认启用 OpenTelemetry FastAPI 与 SQLAlchemy instrumentation。Trace 和标准日志在落盘前经过同一套脱敏规则，并分别写入：
+
+```text
+.bugcapsule-data/demo/traces.jsonl
+.bugcapsule-data/demo/logs.jsonl
+.bugcapsule-data/demo/redaction-findings.jsonl
+```
+
+每条故障日志携带与 HTTP/数据库 Span 一致的 `trace_id` 和 `span_id`。Docker 模式使用 `demo-telemetry-data` 命名卷保存这些证据。
+
 ## 质量检查
 
 ```powershell

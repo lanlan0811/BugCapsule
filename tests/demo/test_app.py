@@ -14,6 +14,7 @@ def test_demo_api_reproduces_and_resets_pool_exhaustion(tmp_path: Path) -> None:
     settings = DemoSettings(
         database_url=f"sqlite+pysqlite:///{database_path}",
         pool_timeout_seconds=0.01,
+        telemetry_dir=tmp_path / "telemetry",
     )
     application = create_demo_app(settings)
 

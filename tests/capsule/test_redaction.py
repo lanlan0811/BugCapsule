@@ -17,6 +17,7 @@ def test_redactor_removes_sensitive_fields_and_value_patterns() -> None:
         "database": "postgresql+psycopg://user:password@db:5432/orders",
         "message": "contact dev@example.com or +86 13800138000",
         "credentials": "Bearer generic-secret-value and sk-live_abcdefghijklmnopqrstuvwxyz",
+        "request_url": "http://localhost/orders?token=query-secret&limit=10",
         "nested": [{"api_key": "sk-exampleabcdefghijklmnop"}],
     }
 
@@ -32,11 +33,12 @@ def test_redactor_removes_sensitive_fields_and_value_patterns() -> None:
         b"13800138000",
         b"generic-secret-value",
         b"sk-live_abcdefghijklmnopqrstuvwxyz",
+        b"query-secret",
         b"sk-exampleabcdefghijklmnop",
     ):
         assert secret not in serialized
         assert secret not in report_bytes
-    assert result.report.total_findings == 8
+    assert result.report.total_findings == 9
     assert {finding.rule_id for finding in result.report.findings} == {
         "sensitive-field",
         "database-url",
@@ -44,6 +46,7 @@ def test_redactor_removes_sensitive_fields_and_value_patterns() -> None:
         "phone-cn",
         "authorization-value",
         "common-api-key",
+        "url-credential",
     }
 
 

@@ -45,6 +45,14 @@ DEFAULT_RULES = (
         "[REDACTED:DATABASE_URL]",
     ),
     RedactionRule(
+        "url-credential",
+        re.compile(
+            r"(?:token|api[_-]?key|secret|password|authorization)=[^&#\s]+",
+            re.IGNORECASE,
+        ),
+        "[REDACTED:URL_CREDENTIAL]",
+    ),
+    RedactionRule(
         "email",
         re.compile(r"(?<![\w.+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}(?![\w.-])", re.IGNORECASE),
         "[REDACTED:EMAIL]",
@@ -56,7 +64,14 @@ DEFAULT_RULES = (
     ),
     RedactionRule(
         "common-api-key",
-        re.compile(r"(?<![A-Za-z0-9])(?:sk|pk|api)[-_][A-Za-z0-9_-]{16,}(?![A-Za-z0-9])"),
+        re.compile(
+            r"(?<![A-Za-z0-9])(?:"
+            r"(?:sk|pk)-[A-Za-z0-9_-]{16,}"
+            r"|AIza[A-Za-z0-9_-]{30,}"
+            r"|gh[pousr]_[A-Za-z0-9]{20,}"
+            r"|xox[baprs]-[A-Za-z0-9-]{16,}"
+            r")(?![A-Za-z0-9])"
+        ),
         "[REDACTED:API_KEY]",
     ),
 )

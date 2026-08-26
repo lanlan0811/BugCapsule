@@ -20,6 +20,7 @@
 - 添加胶囊格式、安全不变量与标识符规则文档。
 - 添加递归默认脱敏引擎与不保留秘密原文的审计报告。
 - 添加确定性 `.bugcapsule` 导出、安全导入、完整性校验与 ZIP 攻击限制。
+- 接入 OpenTelemetry FastAPI/SQLAlchemy Span 与携带 Trace Context 的已脱敏 JSONL 日志。
 
 ### 说明
 

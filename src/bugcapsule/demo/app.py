@@ -1,5 +1,6 @@
 """FastAPI application for the deterministic database pool fault scenario."""
 
+import logging
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from typing import Annotated
@@ -19,6 +20,7 @@ from bugcapsule.demo.database import (
     session_scope,
 )
 from bugcapsule.demo.models import Base, Order
+from bugcapsule.demo.observability import ObservabilityRuntime, configure_observability
 from bugcapsule.demo.schemas import DemoStatus, OrderCreate, OrderRead
 
 
@@ -27,6 +29,8 @@ def create_demo_app(settings: DemoSettings) -> FastAPI:
     engine = build_engine(settings)
     factory = build_session_factory(engine)
     registry = LeakedSessionRegistry()
+    runtime: ObservabilityRuntime | None = None
+    logger = logging.getLogger("bugcapsule.demo")
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -36,6 +40,8 @@ def create_demo_app(settings: DemoSettings) -> FastAPI:
         finally:
             registry.reset()
             engine.dispose()
+            if runtime is not None:
+                runtime.shutdown()
 
     application = FastAPI(
         title="BugCapsule Demo Order Service",
@@ -66,6 +72,7 @@ def create_demo_app(settings: DemoSettings) -> FastAPI:
         session.add(order)
         session.commit()
         session.refresh(order)
+        logger.info("order created", extra={"order_id": order.id})
         return order
 
     @application.post("/demo/leak", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -73,6 +80,13 @@ def create_demo_app(settings: DemoSettings) -> FastAPI:
         try:
             execute_leaking_request(factory, registry)
         except InjectedRequestError as exc:
+            logger.exception(
+                "injected database request failure",
+                extra={
+                    "fault": "injected_request_failure",
+                    "leaked_sessions": registry.active_count,
+                },
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail={
@@ -81,6 +95,13 @@ def create_demo_app(settings: DemoSettings) -> FastAPI:
                 },
             ) from exc
         except PoolTimeoutError as exc:
+            logger.exception(
+                "database connection pool exhausted",
+                extra={
+                    "fault": "database_pool_exhausted",
+                    "leaked_sessions": registry.active_count,
+                },
+            )
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail={
@@ -110,4 +131,6 @@ def create_demo_app(settings: DemoSettings) -> FastAPI:
             state="ready",
         )
 
+    if settings.telemetry_enabled:
+        runtime = configure_observability(application, engine, settings)
     return application

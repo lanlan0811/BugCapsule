@@ -27,3 +27,6 @@ class DemoSettings(BaseSettings):
     api_url: str = "http://127.0.0.1:8766"
     compose_file: Path = Path("compose.yml")
     command_timeout_seconds: float = Field(default=180, gt=0, le=600)
+    telemetry_enabled: bool = True
+    telemetry_dir: Path = Path(".bugcapsule-data/demo")
+    service_name: str = Field(default="demo-order-api", min_length=1, max_length=120)
