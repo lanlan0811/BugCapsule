@@ -10,6 +10,9 @@ BugCapsule is distributed under the Apache License, Version 2.0. A copy of
 the license is included in the LICENSE file. This NOTICE is provided for
 attribution and does not alter the terms of that license.
 
+A plain-language commercial use and redistribution summary is available in
+LICENSING.md. It does not replace, modify, or add to the License.
+
 The source distribution contains a vendored copy of htmx. Its attribution,
 license, source location, and integrity value are recorded in
 THIRD_PARTY_NOTICES.

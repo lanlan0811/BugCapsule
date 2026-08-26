@@ -188,7 +188,7 @@ output/                 PDF、视频计划、试用和提交材料
 | 验证与评测 | [基准数据集](docs/benchmark.md) · [可用性验收](docs/usability-study.md) · [路线图](docs/roadmap.md) |
 | 发布与提交 | [供应链](docs/supply-chain.md) · [评审证据](docs/submission-evidence.md) · [最终材料清单](output/submission/README.md) |
 | 演示资产 | [示例胶囊](examples/README.md) · [录制手册](docs/demo-runbook.md) · [项目 PDF](output/pdf/README.md) |
-| 社区治理 | [贡献指南](CONTRIBUTING.md) · [安全策略](SECURITY.md) · [行为准则](CODE_OF_CONDUCT.md) · [变更记录](CHANGELOG.md) |
+| 社区治理 | [商业使用与再分发声明](LICENSING.md) · [贡献指南](CONTRIBUTING.md) · [安全策略](SECURITY.md) · [行为准则](CODE_OF_CONDUCT.md) · [变更记录](CHANGELOG.md) |
 
 ## 当前状态
 
@@ -205,4 +205,4 @@ Gitee 是主仓、Issue 和贡献入口；GitHub 是同步镜像。提交前请�
 
 项目作品版权归属：Copyright © 2026 **lan0811 与 BugCapsule contributors**。初始开发者与维护者为 **lan0811**。
 
-BugCapsule 原创源代码、文档与视觉资产基于 [Apache License 2.0](LICENSE) 开源；第三方组件版权与许可见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES) 和 [NOTICE](NOTICE)。
+BugCapsule 原创源代码、文档与视觉资产基于 [Apache License 2.0](LICENSE) 开源。该许可证允许商用、修改和闭源二次开发，但分发时必须保留许可证、修改说明及适用归属信息；完整的通俗说明见[商业使用与再分发声明](LICENSING.md)。第三方组件版权与许可见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES) 和 [NOTICE](NOTICE)。

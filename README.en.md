@@ -188,7 +188,7 @@ output/                 PDF, video plan, usability, and submission assets
 | Verification and evaluation | [Benchmark](docs/benchmark.md) · [Usability protocol](docs/usability-study.md) · [Roadmap](docs/roadmap.md) |
 | Release and submission | [Supply chain](docs/supply-chain.md) · [Review evidence](docs/submission-evidence.md) · [Submission manifest](output/submission/README.md) |
 | Demo assets | [Example capsule](examples/README.md) · [Recording runbook](docs/demo-runbook.md) · [Project PDF](output/pdf/README.md) |
-| Community | [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Changelog](CHANGELOG.md) |
+| Community | [Commercial use and redistribution](LICENSING.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Changelog](CHANGELOG.md) |
 
 ## Current status
 
@@ -205,4 +205,4 @@ Gitee is the primary repository and the issue/contribution entry point. GitHub i
 
 Project copyright: Copyright © 2026 **lan0811 and BugCapsule contributors**. The original developer and maintainer is **lan0811**.
 
-BugCapsule's original source code, documentation, and visual assets are licensed under the [Apache License 2.0](LICENSE). Third-party copyrights and license terms are listed in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES) and [NOTICE](NOTICE).
+BugCapsule's original source code, documentation, and visual assets are licensed under the [Apache License 2.0](LICENSE). It permits commercial use, modification, and proprietary derivatives, while redistribution requires preservation of the license, change notices, and applicable attribution. Read the plain-language [commercial use and redistribution notice](LICENSING.md). Third-party copyrights and license terms are listed in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES) and [NOTICE](NOTICE).
