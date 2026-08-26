@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from bugcapsule import __version__
 from bugcapsule.analysis.service import AnalysisError, AnalysisService
 from bugcapsule.benchmarking.dataset import BenchmarkDatasetBuilder, BenchmarkDatasetError
+from bugcapsule.benchmarking.evaluation import EvaluationError, EvaluationRunner
 from bugcapsule.capsule.capture import CaptureError, CaptureService
 from bugcapsule.capsule.identifiers import canonical_json
 from bugcapsule.config import Settings, get_settings
@@ -205,6 +206,38 @@ def benchmark_build(
         typer.echo(f"基准数据集构建失败：{exc}", err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(canonical_json(result.to_dict()).decode("utf-8"))
+
+
+@benchmark_app.command("run")
+def benchmark_run(
+    output: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="写入胶囊与 evaluation.json 的目录。"),
+    ],
+    mode: Annotated[
+        str,
+        typer.Option("--mode", help="评测模式：replay 或 live。"),
+    ] = "replay",
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="显式覆盖已存在的同名基准文件。"),
+    ] = False,
+) -> None:
+    """实测 12 个案例的准确率、引用有效率与 P50/P95。"""
+    if mode not in {"live", "replay"}:
+        typer.echo("基准评测失败：未知评测模式", err=True)
+        raise typer.Exit(code=1)
+    selected_mode = cast(Literal["live", "replay"], mode)
+    try:
+        report = EvaluationRunner(get_settings()).run(
+            output,
+            mode=selected_mode,
+            overwrite=force,
+        )
+    except (BenchmarkDatasetError, EvaluationError, OSError) as exc:
+        typer.echo(f"基准评测失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(canonical_json(report.model_dump(mode="json")).decode("utf-8"))
 
 
 @index_app.command("rebuild")

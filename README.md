@@ -164,9 +164,10 @@ uv run bugcapsule report <capsule-id> --output .\verification-report.html
 
 ```powershell
 uv run bugcapsule benchmark build --output .\benchmark-data
+uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay
 ```
 
-数据集平均覆盖连接泄漏、数据库不可达和慢查询，生成结果包含标注文件 SHA-256，且所有案例明确标记为仿真数据。格式、标注规则和复现约束见[基准数据集文档](docs/benchmark.md)。
+数据集平均覆盖连接泄漏、数据库不可达和慢查询，生成结果包含标注文件 SHA-256，且所有案例明确标记为仿真数据。评测输出逐案例事实及 Top-1、引用有效率、证据覆盖率和三段 P50/P95；`--mode live` 才代表当前配置模型，注释回放不会冒充在线模型能力。格式、评分口径和复现约束见[基准数据集文档](docs/benchmark.md)。
 
 ## 质量检查
 

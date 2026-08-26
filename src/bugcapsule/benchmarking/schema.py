@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import Field, StringConstraints, field_validator, model_validator
+from pydantic import AwareDatetime, Field, StringConstraints, field_validator, model_validator
 
-from bugcapsule.capsule.schema import CapsuleModel, EvidenceKind
+from bugcapsule.capsule.schema import CapsuleModel, EvidenceKind, Sha256
 
 
 class BenchmarkCase(CapsuleModel):
@@ -67,4 +67,59 @@ class BenchmarkDataset(CapsuleModel):
         }
         if any(count < 4 for count in counts.values()):
             raise ValueError("benchmark requires at least four cases for every fault type")
+        return self
+
+
+class EvaluationCaseResult(CapsuleModel):
+    """Measured result for one annotated capsule."""
+
+    case_id: str
+    capsule_id: str
+    fault_type: str
+    status: Literal["completed", "failed"]
+    top1_match: bool
+    citation_count: int = Field(ge=0)
+    valid_citation_count: int = Field(ge=0)
+    required_evidence_covered: bool
+    deterministic_ms: float = Field(ge=0)
+    model_or_replay_ms: float = Field(ge=0)
+    total_ms: float = Field(ge=0)
+    error: str | None = Field(default=None, max_length=500)
+
+
+class EvaluationMetrics(CapsuleModel):
+    """Aggregate accuracy, validity and measured latency percentiles."""
+
+    case_count: int = Field(ge=1)
+    completed_count: int = Field(ge=0)
+    top1_accuracy: float = Field(ge=0, le=1)
+    citation_validity_rate: float = Field(ge=0, le=1)
+    required_evidence_coverage_rate: float = Field(ge=0, le=1)
+    deterministic_p50_ms: float = Field(ge=0)
+    deterministic_p95_ms: float = Field(ge=0)
+    model_or_replay_p50_ms: float = Field(ge=0)
+    model_or_replay_p95_ms: float = Field(ge=0)
+    total_p50_ms: float = Field(ge=0)
+    total_p95_ms: float = Field(ge=0)
+
+
+class EvaluationReport(CapsuleModel):
+    """Versioned result bound to exact annotations and model identity."""
+
+    schema_version: Literal["0.1.0"] = "0.1.0"
+    dataset_name: str
+    annotation_sha256: Sha256
+    simulated_data: Literal[True] = True
+    mode: Literal["live", "replay"]
+    provider: str
+    model: str
+    started_at: AwareDatetime
+    completed_at: AwareDatetime
+    cases: tuple[EvaluationCaseResult, ...] = Field(min_length=12)
+    metrics: EvaluationMetrics
+
+    @model_validator(mode="after")
+    def validate_case_count(self) -> EvaluationReport:
+        if self.metrics.case_count != len(self.cases):
+            raise ValueError("evaluation metrics case_count must match cases")
         return self

@@ -86,6 +86,8 @@ HTML 内联 Design System 样式与 SVG 标志，不包含外部资源或脚本�
 
 `benchmarking/dataset.json` 是人工标注的权威输入，Schema 强制至少 12 个案例，并要求连接泄漏、数据库不可达和慢查询各不少于 4 个。`BenchmarkDatasetBuilder` 仅从该输入派生时间、Trace/Span、Git 与 Evidence 标识，生成可逐项导入校验且跨目录字节一致的胶囊。标注文件与生成结果保持独立，后续指标通过标注 SHA-256 绑定具体数据版本。
 
+`EvaluationRunner` 每次从全新生成的胶囊开始，通过正式 `AnalysisService` 运行全部案例。计时包装器只测量模型或 Replay Store 边界，完整调用减去该边界得到确定性处理耗时；总耗时仍包含请求构造、Schema/Evidence 校验、胶囊原子写回与索引更新。失败案例保留安全错误摘要并进入准确率分母。
+
 ## 事实一致性
 
 CLI `capsules list/show`、Web 页面和 HTML 报告都从 `CapsuleSummary`、`CapsuleDetail` 与 `EvidenceChain` 读取数据。共享视图模型只负责中文标签、时间格式和展示摘要，不创建新的状态或分析结论。

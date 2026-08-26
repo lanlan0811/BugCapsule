@@ -8,6 +8,8 @@ from typer.testing import CliRunner
 from bugcapsule import __version__
 from bugcapsule.analysis.service import AnalysisError
 from bugcapsule.benchmarking.dataset import BenchmarkBuildResult, BenchmarkDatasetError
+from bugcapsule.benchmarking.evaluation import EvaluationError
+from bugcapsule.benchmarking.schema import EvaluationMetrics, EvaluationReport
 from bugcapsule.capsule.capture import CaptureError
 from bugcapsule.cli import app
 from bugcapsule.config import get_settings
@@ -355,6 +357,90 @@ def test_benchmark_build_command_emits_summary_and_safe_error(
     )
     assert failed.exit_code == 1
     assert "基准数据集构建失败" in failed.stderr
+
+
+def test_benchmark_run_command_validates_mode_and_emits_measured_report(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class FakeRunner:
+        def run(self, output: Path, *, mode: str, overwrite: bool) -> EvaluationReport:
+            assert output == tmp_path / "evaluation"
+            assert mode == "replay"
+            assert overwrite is True
+            from datetime import datetime, timezone
+
+            from bugcapsule.benchmarking.schema import EvaluationCaseResult
+
+            case = EvaluationCaseResult(
+                case_id="BC-EVAL-001",
+                capsule_id="cap_eval_001",
+                fault_type="connection_leak",
+                status="completed",
+                top1_match=True,
+                citation_count=3,
+                valid_citation_count=3,
+                required_evidence_covered=True,
+                deterministic_ms=1,
+                model_or_replay_ms=1,
+                total_ms=2,
+            )
+            now = datetime.now(timezone.utc)
+            metrics = EvaluationMetrics(
+                case_count=12,
+                completed_count=12,
+                top1_accuracy=1,
+                citation_validity_rate=1,
+                required_evidence_coverage_rate=1,
+                deterministic_p50_ms=1,
+                deterministic_p95_ms=1,
+                model_or_replay_p50_ms=1,
+                model_or_replay_p95_ms=1,
+                total_p50_ms=2,
+                total_p95_ms=2,
+            )
+            return EvaluationReport(
+                dataset_name="test",
+                annotation_sha256="a" * 64,
+                mode="replay",
+                provider="test",
+                model="test",
+                started_at=now,
+                completed_at=now,
+                cases=(case,) * 12,
+                metrics=metrics,
+            )
+
+    monkeypatch.setattr("bugcapsule.cli.EvaluationRunner", lambda _: FakeRunner())
+    result = runner.invoke(
+        app,
+        [
+            "benchmark",
+            "run",
+            "--output",
+            str(tmp_path / "evaluation"),
+            "--force",
+        ],
+    )
+    invalid = runner.invoke(
+        app,
+        ["benchmark", "run", "--output", str(tmp_path / "evaluation"), "--mode", "bad"],
+    )
+    assert result.exit_code == 0
+    assert '"top1_accuracy":1.0' in result.stdout
+    assert invalid.exit_code == 1
+
+    class FailingRunner:
+        def run(self, output: Path, *, mode: str, overwrite: bool) -> EvaluationReport:
+            raise EvaluationError("provider unavailable")
+
+    monkeypatch.setattr("bugcapsule.cli.EvaluationRunner", lambda _: FailingRunner())
+    failed = runner.invoke(
+        app,
+        ["benchmark", "run", "--output", str(tmp_path / "evaluation")],
+    )
+    assert failed.exit_code == 1
+    assert "基准评测失败" in failed.stderr
 
 
 def test_index_and_capsule_query_commands_emit_deterministic_json(
