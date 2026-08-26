@@ -169,6 +169,18 @@
           ],
           "verification": "uv run python scripts/validate_demo_plan.py；随后按 docs/demo-runbook.md 在 Docker 环境完成三次彩排",
           "status": "partially_verified"
+        },
+        {
+          "claim": "最终提交清单覆盖计划要求的八类材料，未完成项必须携带阻塞原因，标签 Release 在全部状态与预期输出就绪前被工作流拒绝",
+          "paths": [
+            "output/submission/submission-manifest.json",
+            "output/submission/README.md",
+            "scripts/validate_submission_manifest.py",
+            "tests/test_submission_manifest.py",
+            ".github/workflows/release.yml"
+          ],
+          "verification": "uv run python scripts/validate_submission_manifest.py；正式标签前执行 --require-ready",
+          "status": "verified"
         }
       ]
     },

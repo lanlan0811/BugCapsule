@@ -206,6 +206,7 @@ uv run pytest
 - [安全策略](SECURITY.md)
 - [发布供应链与 SBOM](docs/supply-chain.md)
 - [参赛评审证据索引](docs/submission-evidence.md)
+- [最终提交材料清单与 Release 门禁](output/submission/README.md)
 - [项目介绍 PDF](output/pdf/README.md)
 - [三分钟演示计划与录制手册](output/video/README.md)
 - [基准数据集](docs/benchmark.md)

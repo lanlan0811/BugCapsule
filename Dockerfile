@@ -7,6 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+ARG BUGCAPSULE_DEMO_CONTAINER_TELEMETRY_DIR=/var/lib/bugcapsule
+
 RUN groupadd --system --gid 10001 bugcapsule \
     && useradd --system --uid 10001 --gid bugcapsule --home-dir /nonexistent bugcapsule \
     && pip install --no-cache-dir uv==0.8.13
@@ -15,10 +17,11 @@ COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY src ./src
 
 RUN uv sync --frozen --no-dev \
-    && chown -R bugcapsule:bugcapsule /app
+    && mkdir --parents "$BUGCAPSULE_DEMO_CONTAINER_TELEMETRY_DIR" \
+    && chown -R bugcapsule:bugcapsule /app "$BUGCAPSULE_DEMO_CONTAINER_TELEMETRY_DIR"
 
 USER bugcapsule
 
 EXPOSE 8766
 
-CMD ["uv", "run", "python", "-m", "bugcapsule.demo"]
+CMD ["/app/.venv/bin/python", "-m", "bugcapsule.demo"]

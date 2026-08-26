@@ -113,7 +113,14 @@ jobs:
           run_regression "$after_dir" pass
 
       - name: Start PostgreSQL and order service
-        run: docker compose up --build --detach --wait
+        shell: bash
+        run: |
+          if ! docker compose up --build --detach --wait; then
+            docker compose ps --all
+            docker compose logs --no-color order-service
+            docker compose down --volumes
+            exit 1
+          fi
 
       - name: Verify deterministic pool exhaustion
         shell: bash

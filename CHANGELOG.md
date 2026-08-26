@@ -46,6 +46,7 @@
 - 添加遵循 Design System 的 8 页中文项目介绍 PDF、确定性 ReportLab 生成器、锁定产物工具链、SHA-256 与逐页视觉 QA 记录。
 - 添加 Docker 命名卷证据受控同步、最新池耗尽 Trace 选择及 CLI/Web 一键胶囊捕获闭环。
 - 添加机器可校验的 10 镜头/180 秒演示计划、录制运行手册、断网兜底与诚实状态门禁。
+- 添加覆盖八类最终材料的提交清单、预期输出校验与正式标签 Release 阻断门禁。
 
 ### 说明
 
@@ -55,5 +56,6 @@
 ### 修复
 
 - 修复 Linux CI 中 ANSI CLI 帮助断言与非 root 验证容器无法遍历 0700 patched 临时目录的问题。
+- 修复只读订单容器启动时运行 `uv` 和命名卷目录缺少非 root 写权限导致的退出问题，并补充 Compose 失败诊断。
 
 [未发布]: https://gitee.com/lan0811/bug-capsule/commits/master

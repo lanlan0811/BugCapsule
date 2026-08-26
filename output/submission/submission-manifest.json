@@ -1,0 +1,74 @@
+{
+  "schema_version": "0.1.0",
+  "project": "BugCapsule",
+  "release_tag": "v0.1.0",
+  "release_commit": null,
+  "primary_repository": "https://gitee.com/lan0811/bug-capsule",
+  "mirror_repository": "https://github.com/lanlan0811/BugCapsule",
+  "deliverables": [
+    {
+      "id": "source_repositories",
+      "label": "Gitee 主仓、GitHub 镜像与正式 v0.1.0 Release",
+      "status": "partially_verified",
+      "paths": ["README.md", "README.en.md", ".github/workflows/ci.yml", ".github/workflows/release.yml"],
+      "expected_outputs": [],
+      "blockers": ["冻结 release_commit，并在全部门槛满足后创建同一提交的 v0.1.0 标签与 Release 附件"]
+    },
+    {
+      "id": "bilingual_documentation",
+      "label": "中文主 README 与英文快速开始",
+      "status": "verified",
+      "paths": ["README.md", "README.en.md", "docs/architecture.md", "docs/capsule-schema.md"],
+      "expected_outputs": [],
+      "blockers": []
+    },
+    {
+      "id": "reproducible_evidence",
+      "label": "示例胶囊、12 案例基准数据与可重复评测",
+      "status": "verified",
+      "paths": ["examples/connection-leak-simulated.bugcapsule", "examples/SHA256SUMS", "src/bugcapsule/benchmarking/dataset.json", "docs/benchmark.md"],
+      "expected_outputs": [],
+      "blockers": []
+    },
+    {
+      "id": "project_pdf",
+      "label": "项目介绍 PDF",
+      "status": "verified",
+      "paths": ["output/pdf/BugCapsule_0.1_项目介绍.pdf", "output/pdf/SHA256SUMS", "output/pdf/README.md"],
+      "expected_outputs": [],
+      "blockers": []
+    },
+    {
+      "id": "demo_video",
+      "label": "三分钟主演示视频",
+      "status": "external_pending",
+      "paths": ["output/video/demo-shot-list.json", "output/video/README.md", "docs/demo-runbook.md"],
+      "expected_outputs": ["output/video/BugCapsule_0.1_三分钟演示.mp4", "output/video/rehearsal-summary.json"],
+      "blockers": ["在具备 Docker 的比赛环境完成三次彩排并录制、校验最终 MP4"]
+    },
+    {
+      "id": "offline_demo",
+      "label": "断网可运行回放演示",
+      "status": "partially_verified",
+      "paths": ["src/bugcapsule/analysis/replay.py", "src/bugcapsule/patching/replay.py", "src/bugcapsule/reporting/service.py", "docs/demo-runbook.md"],
+      "expected_outputs": ["output/video/rehearsal-summary.json"],
+      "blockers": ["用冻结提交的实际胶囊、匹配回放记录和 HTML 报告完成断网彩排"]
+    },
+    {
+      "id": "open_source_supply_chain",
+      "label": "SBOM、许可证、第三方声明与发布校验和",
+      "status": "partially_verified",
+      "paths": ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES", "docs/supply-chain.md", "scripts/release_integrity.py"],
+      "expected_outputs": ["supply-chain/bugcapsule.cdx.json", "supply-chain/dependency-audit.json", "supply-chain/SHA256SUMS"],
+      "blockers": ["在正式标签工作流中重新生成并随 Release 发布供应链附件"]
+    },
+    {
+      "id": "review_evidence_index",
+      "label": "评审维度与仓库证据对应清单",
+      "status": "verified",
+      "paths": ["docs/submission-evidence.md", "docs/submission-evidence.json", "tests/test_submission_evidence.py"],
+      "expected_outputs": [],
+      "blockers": []
+    }
+  ]
+}

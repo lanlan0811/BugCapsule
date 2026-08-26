@@ -94,6 +94,8 @@ Do not submit production logs, credentials, personal data, or proprietary source
 
 Competition claims, repository evidence, reproduction commands, and explicitly unfinished external work are mapped in the [review evidence index](docs/submission-evidence.md).
 
+The [final submission manifest](output/submission/README.md) covers all eight planned deliverable classes and blocks a tag Release while any external artifact or frozen commit is missing.
+
 The reproducible eight-page Chinese [project introduction PDF](output/pdf/README.md) is committed with its builder, locked artifact dependencies, rendering QA notes, and SHA-256 checksum.
 
 The [three-minute recording package](output/video/README.md) contains a machine-validated 180-second shot list and operator runbook. The Docker rehearsal and final MP4 remain explicitly pending until they are actually recorded.

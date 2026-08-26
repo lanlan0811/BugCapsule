@@ -12,8 +12,18 @@ jobs:
   quality-gates:
     uses: ./.github/workflows/ci.yml
 
+  submission-readiness:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+
+      - name: Require complete competition submission manifest
+        run: python scripts/validate_submission_manifest.py --require-ready
+
   publish-github-mirror:
-    needs: quality-gates
+    needs: [quality-gates, submission-readiness]
     runs-on: ubuntu-latest
     permissions:
       contents: write

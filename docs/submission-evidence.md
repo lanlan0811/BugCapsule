@@ -49,6 +49,7 @@ uv run pytest
 - 中文 README、英文快速开始、安全导向 Issue/PR 模板和公开路线图齐备。状态：已验证。
 - [8 页项目介绍 PDF](../output/pdf/README.md)由锁定工具链确定性生成，附 SHA-256，并完成两轮逐页渲染 QA。状态：已验证。
 - [三分钟演示包](../output/video/README.md)提供机器校验的 10 镜头/180 秒时间线、逐镜头仓库证据、Replay/Live 口径、断网路径和三次彩排门槛；Docker 彩排与最终 MP4 尚未录制。状态：部分验证。
+- [最终提交清单](../output/submission/README.md)覆盖计划要求的八类材料，强制未完成项说明阻塞原因；标签 Release 在全部材料、预期输出和冻结提交就绪前被工作流拒绝。状态：已验证。
 
 ## 长期发展（20%）
 
