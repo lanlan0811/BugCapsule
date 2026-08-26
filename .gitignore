@@ -48,6 +48,9 @@ __pypackages__/
 # BugCapsule local runtime state
 /.bugcapsule-data/
 
+# First-user usability session worksheets (raw participant records stay local)
+/usability-sessions/
+
 # Generated benchmark and release evidence
 /benchmark-data/
 /benchmark-replay/
