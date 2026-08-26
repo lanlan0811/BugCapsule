@@ -8,7 +8,7 @@ from threading import Lock
 from typing import Annotated
 from urllib.parse import urlsplit
 
-from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile, status
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -31,6 +31,7 @@ from bugcapsule.patching.service import (
     PatchGenerationError,
     PatchGenerationService,
 )
+from bugcapsule.verification.service import VerificationError, VerificationService
 from bugcapsule.web.imports import CapsuleImportError, CapsuleUploadService
 from bugcapsule.web.viewmodels import (
     build_detail_view,
@@ -67,6 +68,7 @@ def create_app(
     demo_controller: DemoController | None = None,
     analysis_service: AnalysisService | None = None,
     patch_service: PatchGenerationService | None = None,
+    verification_service: VerificationService | None = None,
 ) -> FastAPI:
     """Build the local-only API and server-rendered Web application."""
     runtime_settings = settings or get_settings()
@@ -309,6 +311,41 @@ def create_app(
             )
         return RedirectResponse(
             f"/capsules/{capsule_id}#patch",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    @application.post("/capsules/{capsule_id}/verify", tags=["verification"])
+    def verify_patch(
+        request: Request,
+        capsule_id: str,
+        patch_id: Annotated[str, Form(min_length=18, max_length=18)],
+        approved_sha256: Annotated[str, Form(pattern=r"^[a-f0-9]{64}$")],
+        explicitly_approved: Annotated[bool, Form()] = False,
+    ) -> Response:
+        _require_local_origin(request)
+        runtime.ensure_index()
+        try:
+            service = verification_service or VerificationService(runtime_settings, index=index)
+            service.verify(
+                capsule_id,
+                patch_id=patch_id,
+                approved_sha256=approved_sha256,
+                explicitly_approved=explicitly_approved,
+            )
+        except VerificationError as exc:
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                context=page_context(
+                    request,
+                    active_nav="detail",
+                    title="隔离验证失败",
+                    message=str(exc),
+                ),
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            )
+        return RedirectResponse(
+            f"/capsules/{capsule_id}#verification",
             status_code=status.HTTP_303_SEE_OTHER,
         )
 

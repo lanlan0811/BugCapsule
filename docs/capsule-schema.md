@@ -19,7 +19,11 @@
 ├── patches/
 │   ├── candidate.json
 │   └── candidate.diff
-└── verification.json
+└── verification/
+    ├── result.json
+    ├── before.log
+    ├── after.log
+    └── redaction-report.json
 ```
 
 除 `manifest.json` 外，每个实际存在的载荷文件都必须在 `manifest.files` 中出现，记录相对 POSIX 路径、SHA-256、小数制字节数和媒体类型。`manifest.json` 不对自身计算哈希，避免循环依赖。清单按路径升序排列，禁止重复项。
@@ -52,6 +56,8 @@ Root Cause ID 与 Patch ID 均由本地规范化内容派生，模型不能指�
 - 导入限制文件数量、单文件大小、总解压大小和压缩比；拒绝重复成员、目录、加密成员、符号链接和未知压缩方法。
 - 导入后必须逐项验证 manifest 的路径集合、文件大小和 SHA-256，缺失、多余或篡改载荷一律拒绝。
 - Patch 只接受文本 Git unified diff；删除、重命名、复制、二进制、模式变化、测试/依赖/配置保护路径、无源码 Evidence 路径和工作区逃逸一律拒绝。
+- 验证结果必须绑定当前 Patch ID 和 Patch SHA-256；`passed` 必须同时满足 before 非零、after 为零且两者均未超时。
+- before/after 日志的 SHA-256、固定命令 ID 和验证状态必须与 `result.json`、清单一致。
 
 ## 默认脱敏
 

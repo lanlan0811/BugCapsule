@@ -13,6 +13,7 @@ from bugcapsule.config import get_settings
 from bugcapsule.demo.controller import DemoControlError, DemoRunResult
 from bugcapsule.index import CapsuleIndexError
 from bugcapsule.patching.service import PatchGenerationError
+from bugcapsule.verification.service import VerificationError
 
 runner = CliRunner()
 
@@ -217,6 +218,62 @@ def test_patch_generate_command_emits_result_and_reports_error(
     failed = runner.invoke(app, ["patch", "generate", "cap_stage3_0001"])
     assert failed.exit_code == 1
     assert "Patch 生成失败" in failed.stderr
+
+
+def test_verify_command_requires_explicit_approval_and_emits_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeArtifact:
+        def model_dump(self, *, mode: str) -> dict[str, object]:
+            assert mode == "json"
+            return {"run": {"status": "passed"}}
+
+    class FakeVerificationService:
+        def verify(self, capsule_id: str, **kwargs: object) -> FakeArtifact:
+            assert capsule_id == "cap_stage3_0001"
+            assert kwargs == {
+                "patch_id": "PATCH-AAAAAAAAAAAA",
+                "approved_sha256": "a" * 64,
+                "explicitly_approved": True,
+            }
+            return FakeArtifact()
+
+    monkeypatch.setattr("bugcapsule.cli.VerificationService", lambda _: FakeVerificationService())
+    result = runner.invoke(
+        app,
+        [
+            "verify",
+            "cap_stage3_0001",
+            "--patch-id",
+            "PATCH-AAAAAAAAAAAA",
+            "--approved-sha256",
+            "a" * 64,
+            "--approve",
+        ],
+    )
+    assert result.exit_code == 0
+    assert result.stdout.strip() == '{"run":{"status":"passed"}}'
+
+    class FailingVerificationService:
+        def verify(self, capsule_id: str, **kwargs: object) -> None:
+            raise VerificationError("approval mismatch")
+
+    monkeypatch.setattr(
+        "bugcapsule.cli.VerificationService", lambda _: FailingVerificationService()
+    )
+    failed = runner.invoke(
+        app,
+        [
+            "verify",
+            "cap_stage3_0001",
+            "--patch-id",
+            "PATCH-AAAAAAAAAAAA",
+            "--approved-sha256",
+            "a" * 64,
+        ],
+    )
+    assert failed.exit_code == 1
+    assert "验证失败" in failed.stderr
 
 
 def test_index_and_capsule_query_commands_emit_deterministic_json(

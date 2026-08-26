@@ -350,12 +350,62 @@ class VerificationRun(CapsuleModel):
     before: TestResult | None = None
     after: TestResult | None = None
 
+    @classmethod
+    def create(
+        cls,
+        *,
+        patch_id: str,
+        patch_sha256: str,
+        approved_sha256: str,
+        explicitly_approved: bool,
+        status: Literal["running", "passed", "failed"],
+        before: TestResult | None = None,
+        after: TestResult | None = None,
+    ) -> VerificationRun:
+        """Bind verification identity to the exact approved Patch bytes."""
+        identity = {
+            "patch_id": patch_id,
+            "patch_sha256": patch_sha256,
+            "approved_sha256": approved_sha256,
+        }
+        return cls(
+            verification_id=stable_identifier("VR", identity),
+            patch_id=patch_id,
+            patch_sha256=patch_sha256,
+            approved_sha256=approved_sha256,
+            explicitly_approved=explicitly_approved,
+            status=status,
+            before=before,
+            after=after,
+        )
+
     @model_validator(mode="after")
     def validate_approval_binding(self) -> VerificationRun:
         if not self.explicitly_approved:
             raise ValueError("verification requires explicit approval")
         if self.patch_sha256 != self.approved_sha256:
             raise ValueError("approved_sha256 must match patch_sha256")
+        expected = stable_identifier(
+            "VR",
+            {
+                "patch_id": self.patch_id,
+                "patch_sha256": self.patch_sha256,
+                "approved_sha256": self.approved_sha256,
+            },
+        )
+        if self.verification_id != expected:
+            raise ValueError("verification_id does not match approved Patch content")
+        if self.status in {"passed", "failed"} and (self.before is None or self.after is None):
+            raise ValueError("completed verification requires before and after results")
+        if self.status == "passed" and (
+            self.before is None
+            or self.after is None
+            or self.before.exit_code == 0
+            or self.before.timed_out
+            or self.after.exit_code != 0
+            or self.after.timed_out
+        ):
+            raise ValueError("passed verification requires before failure and after success")
         return self
 
 

@@ -16,6 +16,7 @@ from bugcapsule.demo.config import DemoSettings
 from bugcapsule.demo.controller import DemoControlError, DemoController, DemoRunResult
 from bugcapsule.index import CapsuleIndex, CapsuleIndexError
 from bugcapsule.patching.service import PatchGenerationError, PatchGenerationService
+from bugcapsule.verification.service import VerificationError, VerificationService
 
 app = typer.Typer(
     name="bugcapsule",
@@ -124,6 +125,33 @@ def patch_generate(
         typer.echo(f"Patch 生成失败：{exc}", err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(canonical_json(result.to_dict()).decode("utf-8"))
+
+
+@app.command()
+def verify(
+    capsule_id: str,
+    patch_id: Annotated[str, typer.Option("--patch-id", help="页面展示的完整 Patch ID。")],
+    approved_sha256: Annotated[
+        str,
+        typer.Option("--approved-sha256", help="人工核对后的完整 Patch SHA-256。"),
+    ],
+    approve: Annotated[
+        bool,
+        typer.Option("--approve", help="明确批准在隔离临时副本中验证该 Patch。"),
+    ] = False,
+) -> None:
+    """在受限 Docker 临时副本中运行修复前后回归。"""
+    try:
+        artifact = VerificationService(get_settings()).verify(
+            capsule_id,
+            patch_id=patch_id,
+            approved_sha256=approved_sha256,
+            explicitly_approved=approve,
+        )
+    except VerificationError as exc:
+        typer.echo(f"验证失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(canonical_json(artifact.model_dump(mode="json")).decode("utf-8"))
 
 
 @index_app.command("rebuild")

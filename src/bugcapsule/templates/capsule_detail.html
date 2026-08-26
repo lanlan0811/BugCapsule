@@ -105,7 +105,20 @@
     {% else %}
     <section class="section-block placeholder-section" id="patch"><div class="section-heading"><div><p class="section-kicker">Patch</p><h2>尚无修复建议</h2></div>{{ status_badge('not_run') }}</div><p>生成 Patch 前必须先完成带有效 Evidence ID 引用的根因分析。</p>{% if detail.analysis and model_mode != 'off' %}<form class="analysis-action" method="post" action="/capsules/{{ detail.summary.capsule_id }}/patch"><button class="btn btn-primary" type="submit">{{ icon('code') }}生成并检查 Patch</button></form>{% endif %}</section>
     {% endif %}
-    <section class="section-block placeholder-section" id="verification"><div class="section-heading"><div><p class="section-kicker">隔离回归</p><h2>验证未开始</h2></div>{{ status_badge(detail.summary.verification_status) }}</div><p>验证需要已批准的 Patch SHA-256；当前主仓库未被修改。</p></section>
+    {% if detail.verification %}
+    <section class="section-block" id="verification" aria-labelledby="verification-title">
+      <div class="section-heading"><div><p class="section-kicker">隔离回归</p><h2 id="verification-title">修复前后对比</h2><p>同一固定命令在两个只读、无网络的 Docker 临时副本中运行。</p></div>{{ status_badge(detail.verification.run.status) }}</div>
+      <div class="verification-grid">
+        <article class="verification-result is-before"><header><span>修复前</span><strong>退出码 {{ detail.verification.run.before.exit_code }}</strong></header><dl><div><dt>耗时</dt><dd>{{ detail.verification.run.before.duration_ms }} ms</dd></div><div><dt>超时</dt><dd>{{ '是' if detail.verification.run.before.timed_out else '否' }}</dd></div></dl><details><summary>查看脱敏原始输出</summary><pre><code>{{ detail.verification_before_log }}</code></pre></details></article>
+        <article class="verification-result is-after"><header><span>应用 Patch 后</span><strong>退出码 {{ detail.verification.run.after.exit_code }}</strong></header><dl><div><dt>耗时</dt><dd>{{ detail.verification.run.after.duration_ms }} ms</dd></div><div><dt>超时</dt><dd>{{ '是' if detail.verification.run.after.timed_out else '否' }}</dd></div></dl><details><summary>查看脱敏原始输出</summary><pre><code>{{ detail.verification_after_log }}</code></pre></details></article>
+      </div>
+      <div class="approval-binding"><strong>批准绑定</strong><span><code>{{ detail.verification.run.patch_id }}</code></span><span>镜像 <code>{{ detail.verification.image }}</code></span><span>命令 <code>{{ detail.verification.command_id }}</code></span></div>
+      {{ identifier('批准 SHA-256', detail.verification.run.approved_sha256) }}
+      {{ identifier('Verification ID', detail.verification.run.verification_id) }}
+    </section>
+    {% else %}
+    <section class="section-block placeholder-section" id="verification"><div class="section-heading"><div><p class="section-kicker">隔离回归</p><h2>验证未开始</h2></div>{{ status_badge(detail.summary.verification_status) }}</div><p>验证需要已批准的 Patch ID 和完整 SHA-256；当前主仓库不会被修改。</p>{% if detail.patch %}<form class="approval-form" method="post" action="/capsules/{{ detail.summary.capsule_id }}/verify"><input type="hidden" name="patch_id" value="{{ detail.patch.candidate.patch_id }}"><label><span>重新输入 Patch SHA-256</span><input name="approved_sha256" type="text" required minlength="64" maxlength="64" pattern="[a-f0-9]{64}" autocomplete="off" spellcheck="false" placeholder="{{ detail.patch.candidate.sha256 }}"></label><label class="approval-check"><input type="checkbox" name="explicitly_approved" value="true" required><span>我已核对 Patch ID 与 SHA-256，并批准仅在隔离临时副本中验证。</span></label><button class="btn btn-primary" type="submit">{{ icon('check') }}批准并运行隔离验证</button></form>{% endif %}</section>
+    {% endif %}
   </div>
 
   <aside class="detail-aside">

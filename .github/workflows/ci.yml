@@ -56,6 +56,33 @@ jobs:
       - name: Validate Compose configuration
         run: docker compose config --quiet
 
+      - name: Build isolated verifier image
+        run: docker build --file Dockerfile.verify --tag bugcapsule-verifier:0.1.0 .
+
+      - name: Verify restricted baseline regression fails before Patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          docker run --rm \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --pids-limit 128 \
+            --memory 512m \
+            --cpus 1 \
+            --user 10001:10001 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m,mode=1777 \
+            --mount "type=bind,source=${GITHUB_WORKSPACE},target=/workspace,readonly" \
+            --workdir /workspace \
+            --env PYTHONPATH=/workspace/src \
+            bugcapsule-verifier:0.1.0 \
+            /app/.venv/bin/python -m pytest verification_tests/test_connection_release.py -q
+          code="$?"
+          set -e
+          test "$code" -ne 0
+
       - name: Start PostgreSQL and order service
         run: docker compose up --build --detach --wait
 

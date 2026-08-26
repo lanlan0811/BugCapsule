@@ -17,8 +17,10 @@ from bugcapsule.index import CapsuleIndex
 from bugcapsule.patching.request import PatchRequest
 from bugcapsule.patching.schema import ModelPatchResponse
 from bugcapsule.patching.service import PatchGenerationService
+from bugcapsule.verification.service import VerificationService
 from tests.capsule.factories import make_stage_three_capsule
 from tests.patching.test_safety import SOURCE_PATH, diff_for
+from tests.verification.test_service import FakeExecutor, setup_patch
 
 
 def make_web_app(
@@ -182,6 +184,56 @@ def test_web_runs_analysis_and_renders_only_validated_root_causes(tmp_path: Path
     assert "确保异常路径归还数据库连接" in detail.text
     assert SOURCE_PATH in detail.text
     assert "source_evidence_bound" in detail.text
+
+
+def test_web_renders_and_rechecks_explicit_verification_approval(tmp_path: Path) -> None:
+    settings, index, _, patch_id, patch_sha = setup_patch(tmp_path)
+    executor = FakeExecutor()
+    service = VerificationService(settings, index=index, executor=executor)
+    service.verify(
+        "cap_stage3_0001",
+        patch_id=patch_id,
+        approved_sha256=patch_sha,
+        explicitly_approved=True,
+    )
+    application = create_app(settings, index, verification_service=service)
+
+    async def request_verification() -> tuple[httpx.Response, httpx.Response, httpx.Response]:
+        transport = httpx.ASGITransport(app=application)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            detail = await client.get("/capsules/cap_stage3_0001")
+            rejected = await client.post(
+                "/capsules/cap_stage3_0001/verify",
+                data={
+                    "patch_id": patch_id,
+                    "approved_sha256": "a" * 64,
+                    "explicitly_approved": "true",
+                },
+                headers={"Origin": "http://testserver"},
+            )
+            approved = await client.post(
+                "/capsules/cap_stage3_0001/verify",
+                data={
+                    "patch_id": patch_id,
+                    "approved_sha256": patch_sha,
+                    "explicitly_approved": "true",
+                },
+                headers={"Origin": "http://testserver"},
+                follow_redirects=False,
+            )
+        return detail, rejected, approved
+
+    detail, rejected, approved = asyncio.run(request_verification())
+    assert detail.status_code == 200
+    assert "修复前后对比" in detail.text
+    assert "退出码 1" in detail.text
+    assert "退出码 0" in detail.text
+    assert "[REDACTED:EMAIL]" in detail.text
+    assert "user@example.com" not in detail.text
+    assert rejected.status_code == 422
+    assert "approved SHA-256" in rejected.text
+    assert approved.status_code == 303
+    assert approved.headers["location"] == "/capsules/cap_stage3_0001#verification"
 
 
 def test_capsule_import_validates_deduplicates_and_rejects_conflict(tmp_path: Path) -> None:

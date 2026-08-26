@@ -24,6 +24,7 @@ from bugcapsule.capsule.schema import (
 from bugcapsule.config import Settings
 from bugcapsule.patching.safety import PatchSafetyError, PatchSafetyValidator
 from bugcapsule.patching.schema import PatchArtifact
+from bugcapsule.verification.schema import VerificationArtifact
 
 INDEX_SCHEMA_VERSION = "2"
 
@@ -78,6 +79,9 @@ class CapsuleDetail:
     analysis: AnalysisArtifact | None
     patch: PatchArtifact | None
     patch_diff: str | None
+    verification: VerificationArtifact | None
+    verification_before_log: str | None
+    verification_after_log: str | None
     archive_path: Path
 
     def to_dict(self) -> dict[str, Any]:
@@ -87,6 +91,9 @@ class CapsuleDetail:
             "redaction_report": self.redaction_report.model_dump(mode="json"),
             "analysis": self.analysis.model_dump(mode="json") if self.analysis else None,
             "patch": self.patch.model_dump(mode="json") if self.patch else None,
+            "verification": (
+                self.verification.model_dump(mode="json") if self.verification else None
+            ),
             "ranked_evidence": [item.model_dump(mode="json") for item in self.evidence.ranked],
             "timeline": [
                 {
@@ -282,6 +289,10 @@ class CapsuleIndex:
             redaction_report = self._redaction_report(imported)
             analysis = self._analysis_artifact(imported, evidence)
             patch, patch_diff = self._patch_artifact(imported, evidence, analysis)
+            verification, before_log, after_log = self._verification_artifact(
+                imported,
+                patch,
+            )
         except (CapsuleArchiveError, EvidenceLoadError) as exc:
             raise CapsuleIndexStaleError(f"indexed capsule is no longer valid: {exc}") from exc
         return CapsuleDetail(
@@ -292,6 +303,9 @@ class CapsuleIndex:
             analysis=analysis,
             patch=patch,
             patch_diff=patch_diff,
+            verification=verification,
+            verification_before_log=before_log,
+            verification_after_log=after_log,
             archive_path=source,
         )
 
@@ -349,7 +363,8 @@ class CapsuleIndex:
         evidence = self.correlator.build(imported)
         redaction_report = self._redaction_report(imported)
         analysis = self._analysis_artifact(imported, evidence)
-        self._patch_artifact(imported, evidence, analysis)
+        patch, _ = self._patch_artifact(imported, evidence, analysis)
+        self._verification_artifact(imported, patch)
         fault_type, fault_summary = self._fault_details(evidence)
         manifest = imported.manifest
         return {
@@ -445,6 +460,55 @@ class CapsuleIndex:
         except (PatchSafetyError, UnicodeDecodeError, ValidationError, ValueError) as exc:
             raise EvidenceLoadError("capsule contains an invalid or unsafe Patch artifact") from exc
         return artifact, diff
+
+    @staticmethod
+    def _verification_artifact(
+        imported: ImportedCapsule,
+        patch: PatchArtifact | None,
+    ) -> tuple[VerificationArtifact | None, str | None, str | None]:
+        paths = (
+            "verification/result.json",
+            "verification/before.log",
+            "verification/after.log",
+            "verification/redaction-report.json",
+        )
+        values = tuple(imported.payloads.get(path) for path in paths)
+        if all(value is None for value in values):
+            if imported.manifest.verification_status in {"passed", "failed"}:
+                raise EvidenceLoadError("completed capsule is missing verification artifacts")
+            return None, None, None
+        if any(value is None for value in values):
+            raise EvidenceLoadError("capsule contains incomplete verification artifacts")
+        if patch is None:
+            raise EvidenceLoadError("capsule verification is missing its Patch")
+        result_bytes, before_bytes, after_bytes, redaction_bytes = (
+            imported.payloads[path] for path in paths
+        )
+        try:
+            artifact = VerificationArtifact.model_validate_json(result_bytes)
+            RedactionReport.model_validate_json(redaction_bytes)
+            before_log = before_bytes.decode("utf-8")
+            after_log = after_bytes.decode("utf-8")
+            run = artifact.run
+            candidate = patch.candidate
+            if run.patch_id != candidate.patch_id or run.patch_sha256 != candidate.sha256:
+                raise ValueError("verification approval does not match Patch")
+            if run.status != imported.manifest.verification_status:
+                raise ValueError("verification status does not match manifest")
+            if run.before is None or run.after is None:
+                raise ValueError("verification is missing before or after result")
+            if (
+                run.before.command_id != artifact.command_id
+                or run.after.command_id != artifact.command_id
+            ):
+                raise ValueError("verification command IDs do not match")
+            if sha256_hex(before_bytes) != run.before.output_sha256:
+                raise ValueError("before output SHA-256 does not match")
+            if sha256_hex(after_bytes) != run.after.output_sha256:
+                raise ValueError("after output SHA-256 does not match")
+        except (UnicodeDecodeError, ValidationError, ValueError) as exc:
+            raise EvidenceLoadError("capsule contains invalid verification artifacts") from exc
+        return artifact, before_log, after_log
 
     @staticmethod
     def _fault_details(evidence: EvidenceChain) -> tuple[str, str]:

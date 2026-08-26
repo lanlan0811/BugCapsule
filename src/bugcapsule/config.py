@@ -38,6 +38,37 @@ class Settings(BaseSettings):
     patch_max_bytes: int = Field(default=256 * 1024, ge=1024, le=1024 * 1024)
     patch_allowed_roots: tuple[str, ...] = DEFAULT_ALLOWED_ROOTS
     patch_protected_paths: tuple[str, ...] = DEFAULT_PROTECTED_PATHS
+    verification_image: str = "bugcapsule-verifier:0.1.0"
+    verification_dockerfile: Path = Path("Dockerfile.verify")
+    verification_command_id: str = "connection-release-regression-v1"
+    verification_command: tuple[str, ...] = (
+        "/app/.venv/bin/python",
+        "-m",
+        "pytest",
+        "verification_tests/test_connection_release.py",
+        "-q",
+    )
+    verification_timeout_seconds: int = Field(default=120, ge=5, le=600)
+    verification_memory: str = "512m"
+    verification_cpus: float = Field(default=1.0, gt=0, le=4)
+    verification_pids_limit: int = Field(default=128, ge=16, le=512)
+    verification_output_max_bytes: int = Field(default=1024 * 1024, ge=1024, le=10 * 1024 * 1024)
+    verification_require_git_match: bool = True
+    verification_copy_excludes: tuple[str, ...] = (
+        ".bugcapsule-data",
+        ".codex",
+        ".env",
+        ".git",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".trae",
+        ".venv",
+        ".zcode",
+        "__pycache__",
+        "build",
+        "dist",
+    )
     display_timezone: str = "Asia/Shanghai"
     max_import_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
     data_dir: Path = Path(".bugcapsule-data")
@@ -50,6 +81,34 @@ class Settings(BaseSettings):
     @classmethod
     def strip_model_text(cls, value: str) -> str:
         return value.strip()
+
+    @field_validator(
+        "verification_image",
+        "verification_command_id",
+        "verification_memory",
+    )
+    @classmethod
+    def validate_verification_text(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped or any(character.isspace() for character in stripped):
+            raise ValueError("verification identifiers must be non-empty and contain no whitespace")
+        return stripped
+
+    @field_validator("verification_command")
+    @classmethod
+    def validate_verification_command(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        if not values or any(not value or "\x00" in value for value in values):
+            raise ValueError("verification command must contain non-empty arguments")
+        return values
+
+    @field_validator("verification_copy_excludes")
+    @classmethod
+    def validate_copy_excludes(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        if not values or any(
+            not value.strip() or "/" in value or "\\" in value for value in values
+        ):
+            raise ValueError("verification copy excludes must be non-empty file names or patterns")
+        return values
 
     @field_validator("patch_allowed_roots", "patch_protected_paths")
     @classmethod

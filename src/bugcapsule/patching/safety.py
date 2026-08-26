@@ -36,6 +36,7 @@ DEFAULT_PROTECTED_PATHS = (
     "requirements.txt",
     "tests",
     "uv.lock",
+    "verification_tests",
 )
 SAFETY_CHECKS = (
     "text_unified_diff",

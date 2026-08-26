@@ -139,6 +139,17 @@ uv run bugcapsule patch generate <capsule-id> --root-cause-id <root-cause-id> --
 
 模型只能提出 unified diff，Patch ID、SHA-256、修改文件清单和安全结论全部由本地生成。解析器拒绝 Markdown 围栏、二进制内容、删除、重命名、复制、模式变化、非规范 Hunk、路径穿越和重复文件；修改路径还必须同时位于 `BUGCAPSULE_PATCH_ALLOWED_ROOTS`、不匹配 `BUGCAPSULE_PATCH_PROTECTED_PATHS`、对应胶囊中的源码 Evidence，并且解析后不逃离 `BUGCAPSULE_SOURCE_ROOT`。测试、依赖锁和项目配置默认属于保护路径。
 
+人工核对页面或 CLI 输出的完整 Patch ID 与 SHA-256 后，才可启动隔离验证：
+
+```powershell
+uv run bugcapsule verify <capsule-id> `
+  --patch-id <patch-id> `
+  --approved-sha256 <完整-64-位-sha256> `
+  --approve
+```
+
+三项批准值必须同时匹配胶囊当前 Patch，失败时不会准备镜像或执行命令。验证器复制两个临时工作区，只把 Patch 应用于 after 副本；两个副本都以只读 bind mount 进入非 root Docker 容器，容器无网络、无 capabilities、启用 `no-new-privileges` 并限制 CPU、内存、PID、临时目录和超时。验证命令来自 `BUGCAPSULE_VERIFICATION_COMMAND`，不接受模型提供的命令。修复前后原始输出经过脱敏后连同退出码、耗时和 SHA-256 写回胶囊，主源码文件会在验证前后做哈希对照。
+
 ## 质量检查
 
 ```powershell

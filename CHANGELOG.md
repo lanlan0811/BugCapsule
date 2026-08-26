@@ -31,6 +31,8 @@
 - 添加结构化精确回放、原子分析产物写回、`analyze` CLI 与 Web 根因候选展示。
 - 添加 evidence-bound Patch 生成、Patch 专用精确回放和 `patch generate` CLI/Web 操作。
 - 添加严格 unified diff 解析、允许根/保护路径、源码 Evidence 绑定、工作区逃逸检查及导入时二次安全校验。
+- 添加 Patch ID/SHA-256/明确批准三重绑定、before/after 临时副本和固定命令验证状态机。
+- 添加非 root、无网络、只读挂载和资源受限的 Docker 验证器，以及验证日志二次脱敏与完整性校验。
 
 ### 说明
 

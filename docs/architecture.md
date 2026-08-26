@@ -64,6 +64,14 @@ SQLite 只保存可重建的列表元数据，例如胶囊 ID、状态、Trace/G
 
 通过校验的 `patches/candidate.diff` 和 `patches/candidate.json` 原子写回胶囊。当前阶段只展示和导出 Patch，不应用工作区，也不执行任何模型提供的命令。
 
+### 人工批准与隔离验证
+
+验证入口同时要求完整 Patch ID、完整 Patch SHA-256 和明确批准布尔值。三者在任何 Docker 或临时副本操作前与胶囊当前 Patch 比对；`Verification ID` 由批准绑定内容派生。验证命令及命令 ID 只来自环境配置，模型输出不能影响它们。
+
+验证器从配置的源码根建立 before/after 两份临时副本，拒绝副本中的符号链接，只在 after 中通过 `git apply --check` 后应用 canonical diff。主源码中的目标文件在验证前后做 SHA-256 对照。Docker 执行器使用专用锁定依赖镜像、非 root 用户、只读根和工作区、`network=none`、`cap-drop=ALL`、`no-new-privileges`、临时 `/tmp` 以及 CPU/内存/PID/超时限制。
+
+固定回归应在 before 失败、after 成功；其他组合明确记录为失败。两个容器的原始输出先经过默认脱敏，再与退出码、耗时、超时标记和输出 SHA-256 写入 `verification/`。胶囊导入和详情读取会重新验证批准绑定、日志哈希、命令 ID 与清单状态。
+
 ### Web
 
 Web 服务仅允许配置为 `127.0.0.1` 或 `localhost`，并校验 Host。页面由 Jinja2 服务端渲染；HTMX 2.0.10 与少量原生 JavaScript 均由 Python 包本地提供。胶囊上传受配置大小限制、同源检查和完整导入校验保护；相同 `capsule_id` 的不同字节不会覆盖现有归档。
@@ -74,4 +82,4 @@ CLI `capsules list/show` 和 Web 页面都从 `CapsuleSummary`、`CapsuleDetail`
 
 ## 尚未实现的边界
 
-人工 SHA-256 确认、受限 Docker 验证器和 HTML 对比报告属于后续阶段。模型分析或 Patch 未运行时，Web 仍会明确显示“未调用模型”“尚无修复建议”和“验证未开始”，不会用占位结果冒充已完成事实。
+HTML 对比报告属于后续阶段。模型分析、Patch 或验证未运行时，Web 仍会明确显示对应的未开始状态，不会用占位结果冒充已完成事实。
