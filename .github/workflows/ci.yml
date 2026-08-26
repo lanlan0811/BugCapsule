@@ -42,3 +42,33 @@ jobs:
 
       - name: Test
         run: uv run pytest
+
+  demo-integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure demo environment
+        run: cp .env.example .env
+
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+      - name: Start PostgreSQL and order service
+        run: docker compose up --build --detach --wait
+
+      - name: Verify deterministic pool exhaustion
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'docker compose down --volumes' EXIT
+          for attempt in 1 2; do
+            code="$(curl --silent --output "leak-${attempt}.json" --write-out '%{http_code}' --request POST http://127.0.0.1:8766/demo/leak)"
+            test "$code" = "500"
+          done
+          code="$(curl --silent --output exhausted.json --write-out '%{http_code}' --request POST http://127.0.0.1:8766/demo/leak)"
+          test "$code" = "503"
+          grep --fixed-strings 'database_pool_exhausted' exhausted.json
+          curl --fail --silent --request POST http://127.0.0.1:8766/demo/reset

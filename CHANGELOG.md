@@ -13,10 +13,12 @@
 - 添加中英文项目介绍占位文档。
 - 建立 Python 3.10–3.12 项目骨架、环境变量配置与本地 FastAPI 健康检查。
 - 添加 Typer CLI、确定性 `uv.lock`、单元测试、覆盖率门禁和多版本 CI。
+- 添加 FastAPI 订单服务、PostgreSQL Compose 环境和可重置的连接池耗尽故障路径。
+- 添加非 root、只读文件系统、最小 capabilities 的订单服务容器基线。
 
 ### 说明
 
 - 当前仓库处于 `0.1.0` 阶段一开发，已具备可运行的本地服务骨架。
-- 数据库故障演示、SBOM、示例胶囊和正式 Release 尚未完成。
+- Docker 环境实机验收、SBOM、示例胶囊和正式 Release 尚未完成。
 
 [未发布]: https://gitee.com/lan0811/bug-capsule/commits/master

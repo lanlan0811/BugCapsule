@@ -1,0 +1,53 @@
+name: bugcapsule-demo
+
+services:
+  postgres:
+    image: postgres:17.6-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?copy .env.example to .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?copy .env.example to .env}
+      POSTGRES_DB: ${POSTGRES_DB:?copy .env.example to .env}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "127.0.0.1:${BUGCAPSULE_DEMO_DB_PORT:-55432}:5432"
+    volumes:
+      - demo-postgres-data:/var/lib/postgresql/data
+    networks:
+      - demo-internal
+
+  order-service:
+    build:
+      context: .
+    environment:
+      BUGCAPSULE_DEMO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      BUGCAPSULE_DEMO_HOST: 0.0.0.0
+      BUGCAPSULE_DEMO_PORT: 8766
+      BUGCAPSULE_DEMO_POOL_SIZE: ${BUGCAPSULE_DEMO_POOL_SIZE:-2}
+      BUGCAPSULE_DEMO_MAX_OVERFLOW: ${BUGCAPSULE_DEMO_MAX_OVERFLOW:-0}
+      BUGCAPSULE_DEMO_POOL_TIMEOUT_SECONDS: ${BUGCAPSULE_DEMO_POOL_TIMEOUT_SECONDS:-1.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${BUGCAPSULE_DEMO_PORT:-8766}:8766"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    networks:
+      - demo-internal
+
+networks:
+  demo-internal:
+    internal: true
+
+volumes:
+  demo-postgres-data:

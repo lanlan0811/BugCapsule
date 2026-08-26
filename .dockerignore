@@ -1,0 +1,14 @@
+.git
+.github
+.gitee
+.codex
+.design_library
+.venv
+.bugcapsule-data
+.env
+dist
+build
+htmlcov
+__pycache__
+*.py[cod]
+*.log

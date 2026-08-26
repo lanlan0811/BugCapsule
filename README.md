@@ -43,6 +43,34 @@ uv run bugcapsule serve
 
 默认地址为 `http://127.0.0.1:8765`，健康检查为 `GET /healthz`，OpenAPI 文档为 `/api/docs`。监听地址被限制为本机回环地址。
 
+## 数据库连接池故障演示
+
+先复制环境模板并替换其中的本地演示密码，然后启动 PostgreSQL 与订单服务：
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build --detach
+curl.exe http://127.0.0.1:8766/healthz
+```
+
+订单服务的 SQLAlchemy 连接池默认固定为 `pool_size=2`、`max_overflow=0`。连续执行三次故障请求：
+
+```powershell
+curl.exe -X POST http://127.0.0.1:8766/demo/leak
+curl.exe -X POST http://127.0.0.1:8766/demo/leak
+curl.exe -X POST http://127.0.0.1:8766/demo/leak
+```
+
+前两次请求在注入的异常路径中保留数据库 Session，第三次返回 `503` 与 `database_pool_exhausted`。可查询并重置确定性状态：
+
+```powershell
+curl.exe http://127.0.0.1:8766/demo/status
+curl.exe -X POST http://127.0.0.1:8766/demo/reset
+docker compose down
+```
+
+所有端口只映射到宿主机 `127.0.0.1`。订单容器以非 root 用户、只读根文件系统、移除 Linux capabilities 且启用 `no-new-privileges` 运行。
+
 ## 质量检查
 
 ```powershell
