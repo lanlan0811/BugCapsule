@@ -16,6 +16,8 @@
 - 添加 FastAPI 订单服务、PostgreSQL Compose 环境和可重置的连接池耗尽故障路径。
 - 添加非 root、只读文件系统、最小 capabilities 的订单服务容器基线。
 - 实现 `bugcapsule demo up|run|reset|down`，安全编排容器并校验固定故障状态序列。
+- 实现开放胶囊 0.1.0 核心 Schema、内容派生 Evidence ID、路径约束和证据引用校验。
+- 添加胶囊格式、安全不变量与标识符规则文档。
 
 ### 说明
 

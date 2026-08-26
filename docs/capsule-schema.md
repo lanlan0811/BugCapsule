@@ -1,0 +1,47 @@
+# BugCapsule 开放胶囊格式 0.1.0
+
+`.bugcapsule` 是一个确定性 ZIP 交换产物。胶囊文件是权威数据，SQLite 仅作为可重建索引。所有 JSON 文件使用 UTF-8、排序键和紧凑分隔符编码，时间必须包含时区。
+
+## 目录结构
+
+```text
+<capsule-id>.bugcapsule
+├── manifest.json
+├── evidence/
+│   ├── traces.jsonl
+│   ├── logs.jsonl
+│   └── source-snippets.json
+├── redaction-report.json
+├── analysis.json
+├── patches/
+│   └── candidate.diff
+└── verification.json
+```
+
+除 `manifest.json` 外，每个实际存在的载荷文件都必须在 `manifest.files` 中出现，记录相对 POSIX 路径、SHA-256、小数制字节数和媒体类型。`manifest.json` 不对自身计算哈希，避免循环依赖。清单按路径升序排列，禁止重复项。
+
+## 核心类型
+
+- `CapsuleManifest`：Schema 版本、胶囊、服务、Trace、Git、环境、处理状态和文件完整性清单。
+- `EvidenceItem`：Trace、Span、日志、Stack Trace、源码、Git、环境或测试证据。
+- `RootCauseCandidate`：排名、置信度、未知项和证据引用。
+- `PatchCandidate`：Patch ID、根因 ID、Diff 文件、SHA-256、修改范围和安全检查。
+- `VerificationRun`：人工批准绑定、固定测试命令和修复前后结果。
+- `RedactionFinding`：脱敏规则、位置、替换标记和命中数量。
+
+## 标识符与证据引用
+
+证据 ID 使用 `EV-` 加规范化内容 SHA-256 的前 12 位大写十六进制字符。ID 输入包括证据类型、来源、内容、Trace ID 和 Span ID，不包含采集时间或优先级，因此同一事实重复采集仍得到同一 ID。
+
+模型输出中的每个 `evidence_ref` 必须存在于当前胶囊。未知引用使整个响应无效；模型适配器最多重试一次，不允许静默删除未知引用。
+
+## 安全约束
+
+- 归档路径只允许非空相对 POSIX 路径。
+- 禁止绝对路径、盘符、反斜杠、`.` 和 `..` 路径段。
+- Trace ID 固定为 32 位小写十六进制，Span ID 固定为 16 位。
+- SHA-256 固定为 64 位小写十六进制。
+- `schema_version` 当前只接受 `0.1.0`；不支持的版本必须显式拒绝。
+- `explicitly_approved=true` 时，`approved_sha256` 必须逐字等于 `patch_sha256`。
+
+正式验证逻辑以 [`src/bugcapsule/capsule/schema.py`](../src/bugcapsule/capsule/schema.py) 中的 Pydantic 模型为准。
