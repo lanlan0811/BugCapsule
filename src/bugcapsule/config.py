@@ -47,6 +47,8 @@ class Settings(BaseSettings):
         "pytest",
         "verification_tests/test_connection_release.py",
         "-q",
+        "-o",
+        "addopts=",
     )
     verification_timeout_seconds: int = Field(default=120, ge=5, le=600)
     verification_memory: str = "512m"

@@ -20,6 +20,7 @@ def test_settings_accept_environment_overrides(monkeypatch: pytest.MonkeyPatch) 
     assert settings.data_dir == Path("runtime-data")
     assert settings.model_mode == "replay"
     assert settings.display_timezone == "UTC"
+    assert settings.verification_command[-2:] == ("-o", "addopts=")
 
 
 def test_settings_reject_public_bind_address(monkeypatch: pytest.MonkeyPatch) -> None:

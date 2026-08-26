@@ -59,29 +59,51 @@ jobs:
       - name: Build isolated verifier image
         run: docker build --file Dockerfile.verify --tag bugcapsule-verifier:0.1.0 .
 
-      - name: Verify restricted baseline regression fails before Patch
+      - name: Verify restricted regression is stable for 20 before/after runs
         shell: bash
         run: |
           set -euo pipefail
-          set +e
-          docker run --rm \
-            --network none \
-            --read-only \
-            --cap-drop ALL \
-            --security-opt no-new-privileges:true \
-            --pids-limit 128 \
-            --memory 512m \
-            --cpus 1 \
-            --user 10001:10001 \
-            --tmpfs /tmp:rw,noexec,nosuid,size=64m,mode=1777 \
-            --mount "type=bind,source=${GITHUB_WORKSPACE},target=/workspace,readonly" \
-            --workdir /workspace \
-            --env PYTHONPATH=/workspace/src \
-            bugcapsule-verifier:0.1.0 \
-            /app/.venv/bin/python -m pytest verification_tests/test_connection_release.py -q
-          code="$?"
-          set -e
-          test "$code" -ne 0
+          after_dir="$(mktemp -d)"
+          trap 'rm -rf -- "$after_dir"' EXIT
+          git archive HEAD | tar -x -C "$after_dir"
+          git -C "$after_dir" apply verification_tests/fixtures/connection-release.diff
+
+          run_regression() {
+            local source_dir="$1"
+            local expectation="$2"
+            docker run --rm \
+              --network none \
+              --read-only \
+              --cap-drop ALL \
+              --security-opt no-new-privileges:true \
+              --pids-limit 128 \
+              --memory 512m \
+              --cpus 1 \
+              --user 10001:10001 \
+              --tmpfs /tmp:rw,noexec,nosuid,size=64m,mode=1777 \
+              --mount "type=bind,source=${source_dir},target=/workspace,readonly" \
+              --workdir /workspace \
+              --env PYTHONPATH=/workspace/src \
+              --env EXPECTATION="$expectation" \
+              bugcapsule-verifier:0.1.0 \
+              /bin/sh -c '
+                set -eu
+                outcomes=0
+                for attempt in $(seq 1 20); do
+                  if /app/.venv/bin/python -m pytest verification_tests/test_connection_release.py -q -o addopts=; then
+                    test "$EXPECTATION" = pass || exit 1
+                    outcomes=$((outcomes + 1))
+                  else
+                    test "$EXPECTATION" = fail || exit 1
+                    outcomes=$((outcomes + 1))
+                  fi
+                done
+                test "$outcomes" -eq 20
+              '
+          }
+
+          run_regression "$GITHUB_WORKSPACE" fail
+          run_regression "$after_dir" pass
 
       - name: Start PostgreSQL and order service
         run: docker compose up --build --detach --wait

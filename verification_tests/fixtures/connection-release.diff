@@ -1,0 +1,11 @@
+diff --git a/src/bugcapsule/demo/database.py b/src/bugcapsule/demo/database.py
+index 67dfbae..a6b314b 100644
+--- a/src/bugcapsule/demo/database.py
++++ b/src/bugcapsule/demo/database.py
+@@ -65,5 +65,5 @@ def execute_leaking_request(
+         session.close()
+         raise
+ 
+-    registry.retain(session)
++    session.close()
+     raise InjectedRequestError("injected failure retained a checked-out database session")
