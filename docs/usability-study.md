@@ -14,19 +14,18 @@
 
 计时从开始阅读 README 到 Web 健康检查成功；目标中位数不超过 10 分钟。主持人只记录观察，不在参与者首次卡住时立即提示；超过 3 分钟的阻塞可给予最小提示并单独记录。
 
-## 匿名记录模板
+## 结构化匿名记录
 
-| 字段 | 记录方式 |
-| --- | --- |
-| participant_id | `P01` 等匿名编号 |
-| operating_system | 系统与版本，不记录设备序列号 |
-| start_to_healthy_seconds | 实测秒数 |
-| doctor_failed_check_ids | 失败检查 ID，使用分号分隔 |
-| task_completion_rate | 完成任务数 / 7 |
-| hints_given | 提示数量与最小内容摘要 |
-| blocking_step | 首个无法独立完成的步骤，无则留空 |
-| documentation_gap | 参与者指出的文档缺口 |
-| confidence_1_to_5 | 主观完成信心 |
-| consent_to_publish_anonymized | `yes` 或 `no` |
+原始响应必须存放在仓库外，每名参与者一个 JSON 文件，并严格采用 [`output/usability/README.md`](../output/usability/README.md) 定义的字段、枚举和取值范围。只使用 `P01` 形式的匿名编号；不采集自由文本、姓名、账号、公司、设备标识、路径、密钥或联系方式。主持人的观察笔记不得复制进响应 JSON。
 
-发布汇总时只报告中位启动时间、任务完成率、常见失败步骤、已修正文档和未解决问题。参与者自由文本必须去除姓名、账号、公司、路径和密钥；未同意匿名发布的数据不进入仓库。
+参与者完成后，在仓库根目录运行：
+
+```powershell
+uv run python scripts/aggregate_usability_study.py `
+  --input-dir C:\safe-local\bugcapsule-usability-responses `
+  --output output\usability\summary.json
+```
+
+汇总器只接受 3–5 个唯一匿名编号、明确同意匿名发布且字段完全匹配的记录；未知字段、自由文本变体、重复值和越界值都会被拒绝。输出路径必须位于原始响应目录之外，默认拒绝覆盖已有结果。发布的 `summary.json` 只包含中位启动时间、任务完成率、常见失败检查/步骤、文档缺口计数、信心与提示数汇总，不包含参与者逐行数据。
+
+首次真实试用前不得创建占位 `summary.json`。试用完成后，由维护者人工核对汇总与主持人去标识笔记，只把汇总及已修正文档提交到仓库；不同意发布的参与者记录不得作为输入。

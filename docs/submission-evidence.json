@@ -204,9 +204,12 @@
         {
           "claim": "3–5 名首次使用者完成匿名可用性验收并报告中位启动时间",
           "paths": [
-            "docs/usability-study.md"
+            "docs/usability-study.md",
+            "output/usability/README.md",
+            "scripts/aggregate_usability_study.py",
+            "tests/test_usability_study.py"
           ],
-          "verification": "按协议邀请独立参与者并发布去标识汇总",
+          "verification": "按协议邀请独立参与者；汇总前运行 uv run pytest tests/test_usability_study.py -o addopts=，再用聚合器生成去标识 summary.json",
           "status": "external_pending"
         },
         {
