@@ -109,6 +109,27 @@ uv run bugcapsule capsules show <capsule-id>
 
 详情命令以确定性 JSON 输出胶囊清单、按优先级排列的证据和因果时间线。时间线通过 Trace ID、Span ID 与父 Span 关系关联 HTTP/数据库 Span、错误日志、Stack Trace 和候选源码区域，不依赖模型推断。
 
+### 证据约束的模型分析
+
+BugCapsule 支持三种显式模型模式：`live` 调用 OpenAI-compatible 接口，`replay` 按完整请求 SHA-256 读取本地录制结果，`off` 不发起网络请求。默认是 `off`。启用模型前在 `.env` 中配置：
+
+```dotenv
+BUGCAPSULE_MODEL_MODE=live
+BUGCAPSULE_MODEL_API_STYLE=responses
+BUGCAPSULE_MODEL_BASE_URL=https://api.openai.com/v1
+BUGCAPSULE_MODEL_API_KEY=replace-with-your-key
+BUGCAPSULE_MODEL_NAME=replace-with-model-name
+```
+
+也可将 `BUGCAPSULE_MODEL_API_STYLE` 设为 `chat_completions` 以适配相应兼容服务。运行分析：
+
+```powershell
+uv run bugcapsule analyze <capsule-id>
+uv run bugcapsule analyze <capsule-id> --mode replay
+```
+
+模型输入只包含胶囊中已脱敏、按优先级选择且受字节上限约束的证据。响应必须通过严格 JSON Schema，并且每个根因候选引用的 Evidence ID 必须存在于本次请求；格式或引用无效时只重试一次。根因 ID 由本地根据内容生成，模型无权指定。验证后的结果写入 `analysis/root-causes.json`，回放目录只保留结构化结果，不保存原始提示或原始响应。
+
 ## 质量检查
 
 ```powershell
@@ -122,7 +143,7 @@ uv run pytest
 
 ## 项目原则
 
-- 证据优先：模型结论必须引用胶囊内已存在的 `evidence_id`。
+- 证据优先：模型结论必须引用本次模型输入中已存在的 `evidence_id`。
 - 人工确认：验证请求必须同时包含 Patch ID、Patch SHA-256 和明确批准标记。
 - 安全隔离：Patch 只进入受限临时副本，不修改主仓库。
 - 离线可演示：Web 使用 Jinja2 + HTMX，不依赖 CDN 或前端构建服务。

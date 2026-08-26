@@ -6,6 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from bugcapsule import __version__
+from bugcapsule.analysis.service import AnalysisError
 from bugcapsule.capsule.capture import CaptureError
 from bugcapsule.cli import app
 from bugcapsule.config import get_settings
@@ -138,6 +139,41 @@ def test_capture_command_reports_capture_error(monkeypatch: pytest.MonkeyPatch) 
     result = runner.invoke(app, ["capture", "--trace-id", "1" * 32])
 
     assert result.exit_code == 1
+
+
+def test_analyze_command_emits_result_and_rejects_invalid_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeResult:
+        def to_dict(self) -> dict[str, object]:
+            return {"status": "completed", "mode": "replay", "artifact": {}}
+
+    class FakeAnalysisService:
+        def analyze(self, capsule_id: str, *, mode: str | None = None) -> FakeResult:
+            assert capsule_id == "cap_stage3_0001"
+            assert mode == "replay"
+            return FakeResult()
+
+    monkeypatch.setattr("bugcapsule.cli.AnalysisService", lambda _: FakeAnalysisService())
+
+    result = runner.invoke(app, ["analyze", "cap_stage3_0001", "--mode", "replay"])
+    invalid = runner.invoke(app, ["analyze", "cap_stage3_0001", "--mode", "invalid"])
+
+    assert result.exit_code == 0
+    assert result.stdout.strip() == '{"artifact":{},"mode":"replay","status":"completed"}'
+    assert invalid.exit_code == 1
+    assert "未知模型模式" in invalid.stderr
+
+
+def test_analyze_command_reports_safe_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FailingAnalysisService:
+        def analyze(self, capsule_id: str, *, mode: str | None = None) -> None:
+            raise AnalysisError(f"record unavailable for {capsule_id}")
+
+    monkeypatch.setattr("bugcapsule.cli.AnalysisService", lambda _: FailingAnalysisService())
+    result = runner.invoke(app, ["analyze", "cap_stage3_0001"])
+    assert result.exit_code == 1
+    assert "分析失败" in result.stderr
 
 
 def test_index_and_capsule_query_commands_emit_deterministic_json(

@@ -1,13 +1,14 @@
 """Command-line entry point for BugCapsule."""
 
 from collections.abc import Callable
-from typing import Annotated
+from typing import Annotated, Literal, cast
 
 import typer
 import uvicorn
 from pydantic import ValidationError
 
 from bugcapsule import __version__
+from bugcapsule.analysis.service import AnalysisError, AnalysisService
 from bugcapsule.capsule.capture import CaptureError, CaptureService
 from bugcapsule.capsule.identifiers import canonical_json
 from bugcapsule.config import Settings, get_settings
@@ -70,6 +71,27 @@ def capture(
         typer.echo(f"捕获失败：{exc}", err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(str(destination))
+
+
+@app.command()
+def analyze(
+    capsule_id: str,
+    mode: Annotated[
+        str | None,
+        typer.Option("--mode", help="模型模式：live、replay 或 off；默认读取环境配置。"),
+    ] = None,
+) -> None:
+    """用胶囊内已脱敏证据生成可追溯的根因候选。"""
+    if mode not in {None, "live", "replay", "off"}:
+        typer.echo("分析失败：未知模型模式", err=True)
+        raise typer.Exit(code=1)
+    try:
+        selected_mode = cast(Literal["live", "replay", "off"] | None, mode)
+        result = AnalysisService(get_settings()).analyze(capsule_id, mode=selected_mode)
+    except AnalysisError as exc:
+        typer.echo(f"分析失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(canonical_json(result.to_dict()).decode("utf-8"))
 
 
 @index_app.command("rebuild")

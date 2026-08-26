@@ -21,6 +21,9 @@ SQLite 元数据索引    EvidenceChain
         │              │
         └──────┬───────┘
                ▼
+   live / replay / off 模型分析
+               │ 严格 Schema + Evidence ID 校验
+               ▼
        CLI JSON / Jinja2 + HTMX Web
 ```
 
@@ -45,6 +48,14 @@ SQLite 元数据索引    EvidenceChain
 
 SQLite 只保存可重建的列表元数据，例如胶囊 ID、状态、Trace/Git 标识、证据数量、脱敏命中数、归档大小和归档 SHA-256。日志正文、Stack Trace 与源码正文不进入数据库。详情读取时会重新计算归档 SHA-256、重新导入胶囊并重建证据链；归档变化会产生显式陈旧索引错误。
 
+### 模型分析
+
+`AnalysisService` 从已校验的 `EvidenceChain` 构造确定性、有字节上限的模型输入。胶囊内容被明确标为不可信数据；只发送已完成脱敏的排序证据，不读取或发送整个仓库。请求摘要绑定提供方、模型、API 风格、指令、输入和输出 Schema。
+
+适配器支持 OpenAI-compatible Responses API 与 Chat Completions 两种请求形式。Responses 请求关闭服务端存储；API Key 只从 `SecretStr` 环境配置进入授权头，错误信息不包含响应正文或密钥。模型必须返回严格结构化根因候选，不能提供 Root Cause ID。确定性代码会校验连续排名、字段边界、重复候选及每个 Evidence ID；格式或引用错误只重试一次，随后返回安全错误。
+
+`live` 只在响应完全有效后保存结构化回放记录；`replay` 必须命中相同请求 SHA-256、提供方和模型；`off` 不访问模型或索引。分析产物作为 `analysis/root-causes.json` 原子写回胶囊并更新清单 SHA-256，详情读取时会再次校验证据引用。原始提示和原始模型响应都不持久化。
+
 ### Web
 
 Web 服务仅允许配置为 `127.0.0.1` 或 `localhost`，并校验 Host。页面由 Jinja2 服务端渲染；HTMX 2.0.10 与少量原生 JavaScript 均由 Python 包本地提供。胶囊上传受配置大小限制、同源检查和完整导入校验保护；相同 `capsule_id` 的不同字节不会覆盖现有归档。
@@ -55,4 +66,4 @@ CLI `capsules list/show` 和 Web 页面都从 `CapsuleSummary`、`CapsuleDetail`
 
 ## 尚未实现的边界
 
-模型 `live/replay/off` 适配器、根因候选、Patch 安全检查、人工 SHA-256 确认、受限 Docker 验证器和 HTML 对比报告属于后续阶段。当前 Web 会明确显示“未调用模型”“尚无修复建议”和“验证未开始”，不会用占位结果冒充已完成事实。
+Patch 安全检查、人工 SHA-256 确认、受限 Docker 验证器和 HTML 对比报告属于后续阶段。模型分析未运行时，Web 仍会明确显示“未调用模型”“尚无修复建议”和“验证未开始”，不会用占位结果冒充已完成事实。

@@ -210,6 +210,45 @@ class RootCauseCandidate(CapsuleModel):
     evidence_refs: tuple[EvidenceId, ...] = Field(min_length=1)
     unknowns: tuple[str, ...] = ()
 
+    @classmethod
+    def create(
+        cls,
+        *,
+        rank: int,
+        hypothesis: str,
+        confidence: float,
+        evidence_refs: tuple[str, ...],
+        unknowns: tuple[str, ...] = (),
+    ) -> RootCauseCandidate:
+        """Assign an immutable content-derived ID to a validated hypothesis."""
+        return cls(
+            root_cause_id=stable_identifier(
+                "RC",
+                {"hypothesis": hypothesis, "evidence_refs": list(evidence_refs)},
+            ),
+            rank=rank,
+            hypothesis=hypothesis,
+            confidence=confidence,
+            evidence_refs=evidence_refs,
+            unknowns=unknowns,
+        )
+
+    @model_validator(mode="after")
+    def verify_root_cause(self) -> RootCauseCandidate:
+        expected = stable_identifier(
+            "RC",
+            {"hypothesis": self.hypothesis, "evidence_refs": list(self.evidence_refs)},
+        )
+        if self.root_cause_id != expected:
+            raise ValueError("root_cause_id does not match canonical hypothesis content")
+        if self.hypothesis != self.hypothesis.strip():
+            raise ValueError("hypothesis must not have surrounding whitespace")
+        if len(self.evidence_refs) != len(set(self.evidence_refs)):
+            raise ValueError("evidence_refs must not contain duplicates")
+        if any(not item.strip() or item != item.strip() for item in self.unknowns):
+            raise ValueError("unknowns must contain non-empty trimmed strings")
+        return self
+
 
 class PatchCandidate(CapsuleModel):
     """Proposed patch metadata; the unified diff remains a separate payload file."""

@@ -7,6 +7,9 @@ from typing import Literal, cast
 import httpx
 from fastapi import FastAPI
 
+from bugcapsule.analysis.request import AnalysisRequest
+from bugcapsule.analysis.schema import ModelAnalysisResponse, ModelRootCause
+from bugcapsule.analysis.service import AnalysisService
 from bugcapsule.app import create_app
 from bugcapsule.config import Settings
 from bugcapsule.demo.controller import DemoControlError, DemoController, DemoRunResult
@@ -89,6 +92,64 @@ def test_capsule_detail_renders_evidence_and_downloads_exact_archive(tmp_path: P
     assert download.headers["content-type"].startswith("application/vnd.bugcapsule+zip")
     assert missing.status_code == 404
     assert "胶囊不存在" in missing.text
+
+
+def test_web_runs_analysis_and_renders_only_validated_root_causes(tmp_path: Path) -> None:
+    data_dir = tmp_path / "data"
+    settings = Settings(
+        data_dir=data_dir,
+        replay_dir=data_dir / "replay",
+        display_timezone="UTC",
+        model_mode="live",
+        model_name="gpt-test",
+        model_api_key="test-key",
+        model_provider="test-provider",
+    )
+    index = CapsuleIndex(data_dir / "index.sqlite3", data_dir / "capsules")
+    make_stage_three_capsule(index.capsules_dir)
+
+    class FakeClient:
+        def analyze(self, request: AnalysisRequest) -> ModelAnalysisResponse:
+            included = sorted(request.included_evidence_ids)
+            return ModelAnalysisResponse(
+                root_causes=(
+                    ModelRootCause(
+                        rank=1,
+                        hypothesis="连接未归还导致连接池耗尽",
+                        confidence=0.96,
+                        evidence_refs=(included[0],),
+                        unknowns=("需要核对生产配置",),
+                    ),
+                )
+            )
+
+    service = AnalysisService(settings, index=index, client=FakeClient())
+    application = create_app(settings, index, analysis_service=service)
+
+    async def run_and_read() -> tuple[httpx.Response, httpx.Response, httpx.Response]:
+        transport = httpx.ASGITransport(app=application)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            rejected = await client.post(
+                "/capsules/cap_stage3_0001/analyze",
+                headers={"Origin": "https://attacker.example"},
+            )
+            analyzed = await client.post(
+                "/capsules/cap_stage3_0001/analyze",
+                headers={"Origin": "http://testserver"},
+                follow_redirects=False,
+            )
+            detail = await client.get("/capsules/cap_stage3_0001")
+        return rejected, analyzed, detail
+
+    rejected, analyzed, detail = asyncio.run(run_and_read())
+    assert rejected.status_code == 403
+    assert analyzed.status_code == 303
+    assert analyzed.headers["location"] == "/capsules/cap_stage3_0001#analysis"
+    assert detail.status_code == 200
+    assert "模型分析结果" in detail.text
+    assert "连接未归还导致连接池耗尽" in detail.text
+    assert "96% 置信度" in detail.text
+    assert "live · 实时" in detail.text
 
 
 def test_capsule_import_validates_deduplicates_and_rejects_conflict(tmp_path: Path) -> None:

@@ -71,7 +71,25 @@
     </section>
     {% endif %}
 
-    <section class="section-block placeholder-section" id="analysis"><div class="section-heading"><div><p class="section-kicker">根因候选</p><h2>未调用模型</h2></div>{{ status_badge(detail.summary.analysis_status) }}</div><p>当前页面仅展示确定性证据。模型分析尚未运行，因此没有根因结论或证据引用。</p></section>
+    {% if detail.analysis %}
+    <section class="section-block" id="analysis" aria-labelledby="analysis-title">
+      <div class="section-heading"><div><p class="section-kicker">根因候选</p><h2 id="analysis-title">模型分析结果</h2><p>结论已通过本地 Schema 与 Evidence ID 双重校验。</p></div><div class="detail-statuses">{{ status_badge(detail.analysis.mode) }}{{ status_badge(detail.summary.analysis_status) }}</div></div>
+      <div class="analysis-meta"><span>提供方 <code>{{ detail.analysis.provider }}</code></span><span>模型 <code>{{ detail.analysis.model }}</code></span><span>完成时间 <time datetime="{{ detail.analysis.completed_at.isoformat() }}">{{ detail.analysis.completed_at|datetime }}</time></span></div>
+      <ol class="root-causes">
+      {% for candidate in detail.analysis.root_causes %}
+        <li class="root-cause">
+          <header><span class="cause-rank">#{{ candidate.rank }}</span><code>{{ candidate.root_cause_id }}</code><strong>{{ '%.0f'|format(candidate.confidence * 100) }}% 置信度</strong></header>
+          <p>{{ candidate.hypothesis }}</p>
+          <div class="cause-evidence"><span>证据引用</span>{% for evidence_id in candidate.evidence_refs %}<a class="ev-ref" href="#evidence-{{ evidence_id }}">{{ evidence_id }}</a>{% endfor %}</div>
+          {% if candidate.unknowns %}<div class="cause-unknowns"><strong>仍待确认</strong><ul>{% for unknown in candidate.unknowns %}<li>{{ unknown }}</li>{% endfor %}</ul></div>{% endif %}
+        </li>
+      {% endfor %}
+      </ol>
+      {{ identifier('请求 SHA-256', detail.analysis.request_sha256) }}
+    </section>
+    {% else %}
+    <section class="section-block placeholder-section" id="analysis"><div class="section-heading"><div><p class="section-kicker">根因候选</p><h2>未调用模型</h2></div>{{ status_badge(model_mode) }}</div><p>当前页面仅展示确定性证据。模型分析尚未运行，因此没有根因结论或证据引用。</p>{% if model_mode != 'off' %}<form class="analysis-action" method="post" action="/capsules/{{ detail.summary.capsule_id }}/analyze"><button class="btn btn-primary" type="submit">{{ icon('activity') }}运行 {{ model_mode }} 分析</button></form>{% endif %}</section>
+    {% endif %}
     <section class="section-block placeholder-section" id="patch"><div class="section-heading"><div><p class="section-kicker">Patch</p><h2>尚无修复建议</h2></div>{{ status_badge('not_run') }}</div><p>生成 Patch 前必须先完成带有效 Evidence ID 引用的根因分析。</p></section>
     <section class="section-block placeholder-section" id="verification"><div class="section-heading"><div><p class="section-kicker">隔离回归</p><h2>验证未开始</h2></div>{{ status_badge(detail.summary.verification_status) }}</div><p>验证需要已批准的 Patch SHA-256；当前主仓库未被修改。</p></section>
   </div>

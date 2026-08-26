@@ -26,6 +26,9 @@
 - 添加以胶囊为事实源的可重建 SQLite 元数据索引及 `index`、`capsules` CLI 查询。
 - 添加遵循 BugCapsule Design System 的 Jinja2 + HTMX 故障列表、胶囊详情、证据链和演示控制页面。
 - 添加本地胶囊安全导入、原始归档导出、同源请求校验和本地固定版本 HTMX 资源。
+- 添加 OpenAI-compatible Responses/Chat Completions 适配器和 `live/replay/off` 模型模式。
+- 添加有输入预算的脱敏证据请求、严格根因 Schema、无效响应单次重试和本地 Evidence ID 强校验。
+- 添加结构化精确回放、原子分析产物写回、`analyze` CLI 与 Web 根因候选展示。
 
 ### 说明
 

@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
 from bugcapsule import __version__
+from bugcapsule.analysis.service import AnalysisError, AnalysisService
 from bugcapsule.config import Settings, get_settings
 from bugcapsule.demo.config import DemoSettings
 from bugcapsule.demo.controller import DemoControlError, DemoController
@@ -60,6 +61,7 @@ def create_app(
     settings: Settings | None = None,
     capsule_index: CapsuleIndex | None = None,
     demo_controller: DemoController | None = None,
+    analysis_service: AnalysisService | None = None,
 ) -> FastAPI:
     """Build the local-only API and server-rendered Web application."""
     runtime_settings = settings or get_settings()
@@ -231,6 +233,42 @@ def create_app(
                 current_capsule=detail.summary,
                 **build_detail_view(detail),
             ),
+        )
+
+    @application.post("/capsules/{capsule_id}/analyze", tags=["analysis"])
+    def analyze_capsule(request: Request, capsule_id: str) -> Response:
+        _require_local_origin(request)
+        runtime.ensure_index()
+        try:
+            service = analysis_service or AnalysisService(runtime_settings, index=index)
+            result = service.analyze(capsule_id)
+        except AnalysisError as exc:
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                context=page_context(
+                    request,
+                    active_nav="detail",
+                    title="模型分析失败",
+                    message=str(exc),
+                ),
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            )
+        if result.status == "model_off":
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                context=page_context(
+                    request,
+                    active_nav="detail",
+                    title="模型模式已关闭",
+                    message="将 BUGCAPSULE_MODEL_MODE 配置为 live 或 replay 后再运行分析。",
+                ),
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        return RedirectResponse(
+            f"/capsules/{capsule_id}#analysis",
+            status_code=status.HTTP_303_SEE_OTHER,
         )
 
     @application.get("/demo", response_class=HTMLResponse, tags=["demo"])
