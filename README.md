@@ -204,6 +204,7 @@ uv run pytest
 - [贡献指南](CONTRIBUTING.md)
 - [安全策略](SECURITY.md)
 - [发布供应链与 SBOM](docs/supply-chain.md)
+- [参赛评审证据索引](docs/submission-evidence.md)
 - [基准数据集](docs/benchmark.md)
 - [示例胶囊](examples/README.md)
 - [可用性验收协议](docs/usability-study.md)

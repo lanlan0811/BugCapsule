@@ -90,4 +90,6 @@ The supply-chain gate builds the wheel and source archive, generates a CycloneDX
 
 Do not submit production logs, credentials, personal data, or proprietary source. Review the redaction report before sharing a capsule or HTML report. See the [security policy](SECURITY.md), [contribution guide](CONTRIBUTING.md), [threat model](docs/threat-model.md), [supply-chain guide](docs/supply-chain.md), and [roadmap](docs/roadmap.md).
 
+Competition claims, repository evidence, reproduction commands, and explicitly unfinished external work are mapped in the [review evidence index](docs/submission-evidence.md).
+
 BugCapsule is licensed under the [Apache License 2.0](LICENSE).

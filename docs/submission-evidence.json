@@ -1,0 +1,199 @@
+{
+  "schema_version": "0.1.0",
+  "dimensions": [
+    {
+      "id": "technical_innovation",
+      "label": "技术创新",
+      "weight_percent": 30,
+      "items": [
+        {
+          "claim": "开放 .bugcapsule Schema、内容派生 Evidence ID、确定性归档和逐文件 SHA-256 完整性校验",
+          "paths": [
+            "docs/capsule-schema.md",
+            "src/bugcapsule/capsule/schema.py",
+            "src/bugcapsule/capsule/archive.py",
+            "tests/capsule/test_archive.py",
+            "examples/connection-leak-simulated.bugcapsule"
+          ],
+          "verification": "uv run pytest tests/capsule/test_archive.py tests/test_examples.py -o addopts=",
+          "status": "verified"
+        },
+        {
+          "claim": "模型根因和 Patch 必须引用本次请求中的 Evidence ID，未知引用、越界路径和保护文件修改由本地拒绝",
+          "paths": [
+            "src/bugcapsule/analysis/service.py",
+            "src/bugcapsule/patching/safety.py",
+            "tests/analysis/test_service.py",
+            "tests/patching/test_safety.py"
+          ],
+          "verification": "uv run pytest tests/analysis tests/patching -o addopts=",
+          "status": "verified"
+        },
+        {
+          "claim": "Patch ID、完整 SHA-256 与明确批准三重绑定，补丁仅进入受限 before/after 临时副本",
+          "paths": [
+            "src/bugcapsule/verification/service.py",
+            "src/bugcapsule/verification/docker.py",
+            "Dockerfile.verify",
+            "tests/verification/test_service.py"
+          ],
+          "verification": "uv run pytest tests/verification -o addopts=",
+          "status": "verified"
+        }
+      ]
+    },
+    {
+      "id": "scenario_delivery",
+      "label": "场景落地",
+      "weight_percent": 30,
+      "items": [
+        {
+          "claim": "FastAPI 与 PostgreSQL 主场景以固定两连接池稳定制造连接泄漏、耗尽和重置状态序列",
+          "paths": [
+            "compose.yml",
+            "src/bugcapsule/demo/app.py",
+            "src/bugcapsule/demo/database.py",
+            "tests/demo/test_database.py",
+            ".github/workflows/ci.yml"
+          ],
+          "verification": "docker compose up --build --detach --wait；随后 uv run bugcapsule demo run",
+          "status": "partially_verified"
+        },
+        {
+          "claim": "Trace、日志、源码、Git 与环境形成因果时间线，并由 CLI、Web 和自包含 HTML 报告读取同一事实源",
+          "paths": [
+            "src/bugcapsule/capsule/capture.py",
+            "src/bugcapsule/capsule/evidence.py",
+            "src/bugcapsule/index.py",
+            "src/bugcapsule/reporting/service.py",
+            "tests/test_web.py"
+          ],
+          "verification": "uv run pytest tests/capsule/test_capture.py tests/capsule/test_evidence.py tests/test_web.py tests/reporting -o addopts=",
+          "status": "verified"
+        },
+        {
+          "claim": "12 个版本化仿真案例平均覆盖三类故障，评测 Top-1、引用有效率、证据覆盖率和分段 P50/P95",
+          "paths": [
+            "docs/benchmark.md",
+            "src/bugcapsule/benchmarking/dataset.json",
+            "src/bugcapsule/benchmarking/evaluation.py",
+            "tests/benchmarking/test_evaluation.py"
+          ],
+          "verification": "uv run bugcapsule benchmark build --output benchmark-data；uv run bugcapsule benchmark run --mode replay --output benchmark-replay",
+          "status": "verified"
+        },
+        {
+          "claim": "受限 Docker 固定回归在修复前和修复后各重复 20 次",
+          "paths": [
+            ".github/workflows/ci.yml",
+            "verification_tests/test_connection_release.py",
+            "verification_tests/fixtures/connection-release.diff"
+          ],
+          "verification": "CI / demo-integration 的 Verify restricted regression is stable for 20 before/after runs 步骤",
+          "status": "external_pending"
+        }
+      ]
+    },
+    {
+      "id": "open_source_governance",
+      "label": "开源治理",
+      "weight_percent": 20,
+      "items": [
+        {
+          "claim": "Apache-2.0 许可、NOTICE、第三方声明、安全披露、贡献流程和行为准则齐备",
+          "paths": [
+            "LICENSE",
+            "NOTICE",
+            "THIRD_PARTY_NOTICES",
+            "SECURITY.md",
+            "CONTRIBUTING.md",
+            "CODE_OF_CONDUCT.md"
+          ],
+          "verification": "人工核对治理文件与发布包",
+          "status": "verified"
+        },
+        {
+          "claim": "公开威胁模型覆盖资产、信任边界、攻击面、缓解措施、残余风险和隐私边界",
+          "paths": [
+            "docs/threat-model.md",
+            "SECURITY.md",
+            "src/bugcapsule/capsule/redaction.py",
+            "tests/capsule/test_redaction.py"
+          ],
+          "verification": "uv run pytest tests/capsule/test_redaction.py -o addopts=",
+          "status": "verified"
+        },
+        {
+          "claim": "发布包包含 CycloneDX 1.6 SBOM、哈希冻结生产依赖审计、wheel、源码包和 SHA-256 清单",
+          "paths": [
+            "docs/supply-chain.md",
+            "scripts/release_integrity.py",
+            "tests/test_release_integrity.py",
+            ".github/workflows/release.yml"
+          ],
+          "verification": "执行 docs/supply-chain.md 的本地复现命令",
+          "status": "verified"
+        },
+        {
+          "claim": "中文主文档、英文快速开始及安全导向 Issue/PR 模板可直接用于协作",
+          "paths": [
+            "README.md",
+            "README.en.md",
+            ".github/ISSUE_TEMPLATE/bug_report.yml",
+            ".github/pull_request_template.md"
+          ],
+          "verification": "人工核对链接和模板字段",
+          "status": "verified"
+        }
+      ]
+    },
+    {
+      "id": "long_term_development",
+      "label": "长期发展",
+      "weight_percent": 20,
+      "items": [
+        {
+          "claim": "稳定 Schema、分层架构、OpenAI-compatible 双 API 适配和 live/replay/off 边界支持后续演进",
+          "paths": [
+            "docs/architecture.md",
+            "docs/capsule-schema.md",
+            "src/bugcapsule/analysis/client.py",
+            "src/bugcapsule/analysis/replay.py",
+            "docs/roadmap.md"
+          ],
+          "verification": "uv run pytest tests/analysis -o addopts=",
+          "status": "verified"
+        },
+        {
+          "claim": "3–5 名首次使用者完成匿名可用性验收并报告中位启动时间",
+          "paths": [
+            "docs/usability-study.md"
+          ],
+          "verification": "按协议邀请独立参与者并发布去标识汇总",
+          "status": "external_pending"
+        },
+        {
+          "claim": "比赛默认 Live 模型完成独立量化评测，结果与注释回放明确分栏",
+          "paths": [
+            "docs/benchmark.md",
+            "src/bugcapsule/analysis/client.py",
+            "src/bugcapsule/benchmarking/evaluation.py"
+          ],
+          "verification": "配置提供方后运行 uv run bugcapsule benchmark run --mode live --output benchmark-live",
+          "status": "external_pending"
+        },
+        {
+          "claim": "Gitee 主仓与 GitHub 镜像同步并发布正式 v0.1.0 Release",
+          "paths": [
+            "README.md",
+            "README.en.md",
+            ".github/workflows/release.yml",
+            "CHANGELOG.md"
+          ],
+          "verification": "核对两个远端同一标签提交、Release 附件和 SHA256SUMS",
+          "status": "external_pending"
+        }
+      ]
+    }
+  ]
+}
