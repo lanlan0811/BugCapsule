@@ -1,37 +1,73 @@
 # BugCapsule
 
-#### 介绍
-BugCapsule-开放源代码人工智能故障调试工具融合链路日志代码与测试证据帮助开发者快速定位根因生成补丁并验证修复效果
+BugCapsule 是一款以运行时证据为核心、能够验证修复结果的开源 AI 调试工具。它把 Trace、日志、源码、Git 变更和测试结果组织成可校验的故障胶囊，使根因分析与修复建议都能回溯到具体证据。
 
-#### 软件架构
-软件架构说明
+> 当前版本：`0.1.0`（开发中）
+>
+> 主演示场景：FastAPI + PostgreSQL 数据库连接池耗尽
+>
+> 主仓库与 Issue：Gitee
 
+## 核心闭环
 
-#### 安装教程
+```text
+故障注入 → Trace / Log / 代码证据 → 故障胶囊
+        → AI 根因与补丁 → 人工确认
+        → 隔离回归 → 前后对比报告
+```
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+BugCapsule 不会让模型直接修改主演示仓库。模型只提出带证据引用的 unified diff；补丁必须通过路径、安全和 SHA-256 确认检查，随后才能在隔离临时副本中验证。
 
-#### 使用说明
+## 开发环境
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+- Windows 10/11、Linux 或 macOS
+- Python 3.10–3.12
+- [uv](https://docs.astral.sh/uv/)
+- Docker Desktop 或 Docker Engine（主演示场景需要）
 
-#### 参与贡献
+## 本地安装
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+```powershell
+Copy-Item .env.example .env
+uv sync --frozen --all-groups
+uv run bugcapsule --version
+```
 
+环境配置只从 `.env` 或 `BUGCAPSULE_*` 环境变量读取。`.env` 不进入 Git；可提交的字段说明位于 [`.env.example`](.env.example)。
 
-#### 特技
+## 启动本地服务
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+```powershell
+uv run bugcapsule serve
+```
+
+默认地址为 `http://127.0.0.1:8765`，健康检查为 `GET /healthz`，OpenAPI 文档为 `/api/docs`。监听地址被限制为本机回环地址。
+
+## 质量检查
+
+```powershell
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy
+uv run pytest
+```
+
+依赖解析结果提交在 `uv.lock`；CI 在 Python 3.10、3.11 和 3.12 上使用冻结锁文件执行同一组检查。
+
+## 项目原则
+
+- 证据优先：模型结论必须引用胶囊内已存在的 `evidence_id`。
+- 人工确认：验证请求必须同时包含 Patch ID、Patch SHA-256 和明确批准标记。
+- 安全隔离：Patch 只进入受限临时副本，不修改主仓库。
+- 离线可演示：Web 使用 Jinja2 + HTMX，不依赖 CDN 或前端构建服务。
+- 可访问表达：状态由文字、形态和 SVG 符号共同表达，不单独依赖颜色。
+
+## 文档与治理
+
+- [英文简介](README.en.md)
+- [贡献指南](CONTRIBUTING.md)
+- [安全策略](SECURITY.md)
+- [行为准则](CODE_OF_CONDUCT.md)
+- [变更记录](CHANGELOG.md)
+
+本项目基于 [Apache License 2.0](LICENSE) 开源。

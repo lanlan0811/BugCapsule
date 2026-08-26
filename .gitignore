@@ -145,3 +145,8 @@ docs/Development-Draft/
 .trae/*
 
 AGENTS.md
+
+.design_library/
+
+# BugCapsule local runtime data
+.bugcapsule-data/
