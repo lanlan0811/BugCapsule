@@ -56,15 +56,26 @@ BugCapsule 是一款以运行时证据为核心、能够验证修复结果的开
 
 ### 1. 准备环境
 
-- Windows 10/11、Linux 或 macOS；
+- Windows 10/11、Linux 或 macOS；Windows 支持 PowerShell 和 Git Bash，提示符中出现 `MINGW64` 时请使用 Git Bash 命令；
 - Python 3.10–3.12；
 - [uv](https://docs.astral.sh/uv/)；
 - Docker Desktop 或 Docker Engine + Compose v2（主演示与隔离验证需要）。
 
 ### 2. 安装与诊断
 
+Windows PowerShell：
+
 ```powershell
 Copy-Item .env.example .env
+uv sync --frozen --group dev
+uv run bugcapsule --version
+uv run bugcapsule doctor
+```
+
+Windows Git Bash（提示符通常包含 `MINGW64`）：
+
+```bash
+cp .env.example .env
 uv sync --frozen --group dev
 uv run bugcapsule --version
 uv run bugcapsule doctor
@@ -152,6 +163,8 @@ uv run bugcapsule patch generate <capsule-id> --mode replay
 
 ### 人工批准与隔离回归
 
+Windows PowerShell：
+
 ```powershell
 uv run bugcapsule verify <capsule-id> `
   --patch-id <patch-id> `
@@ -159,6 +172,17 @@ uv run bugcapsule verify <capsule-id> `
   --approve
 
 uv run bugcapsule report <capsule-id> --output .\verification-report.html
+```
+
+Windows Git Bash：
+
+```bash
+uv run bugcapsule verify <capsule-id> \
+  --patch-id <patch-id> \
+  --approved-sha256 <完整64位SHA-256> \
+  --approve
+
+uv run bugcapsule report <capsule-id> --output ./verification-report.html
 ```
 
 macOS / Linux：

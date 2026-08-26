@@ -56,15 +56,26 @@ Every icon is a repository-local SVG. The README uses no CDN or remote badge ser
 
 ### Requirements
 
-- Windows 10/11, Linux, or macOS;
+- Windows 10/11, Linux, or macOS; Windows supports PowerShell and Git Bash, and a prompt containing `MINGW64` indicates that the Git Bash commands should be used;
 - Python 3.10–3.12;
 - [uv](https://docs.astral.sh/uv/);
 - Docker Desktop or Docker Engine with Compose v2 for the primary demo and isolated verification.
 
 ### Install and diagnose
 
+Windows PowerShell:
+
 ```powershell
 Copy-Item .env.example .env
+uv sync --frozen --group dev
+uv run bugcapsule --version
+uv run bugcapsule doctor
+```
+
+Windows Git Bash (the prompt usually contains `MINGW64`):
+
+```bash
+cp .env.example .env
 uv sync --frozen --group dev
 uv run bugcapsule --version
 uv run bugcapsule doctor
@@ -152,6 +163,8 @@ The provider receives only redacted, prioritized evidence under a byte budget. R
 
 ### Approve and verify in isolation
 
+Windows PowerShell:
+
 ```powershell
 uv run bugcapsule verify <capsule-id> `
   --patch-id <patch-id> `
@@ -159,6 +172,17 @@ uv run bugcapsule verify <capsule-id> `
   --approve
 
 uv run bugcapsule report <capsule-id> --output .\verification-report.html
+```
+
+Windows Git Bash:
+
+```bash
+uv run bugcapsule verify <capsule-id> \
+  --patch-id <patch-id> \
+  --approved-sha256 <full-64-character-sha256> \
+  --approve
+
+uv run bugcapsule report <capsule-id> --output ./verification-report.html
 ```
 
 macOS / Linux:
