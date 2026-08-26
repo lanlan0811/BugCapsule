@@ -64,6 +64,8 @@ def test_report_is_deterministic_self_contained_and_escapes_untrusted_text(
     assert "user@example.com" not in text
     assert "<script>alert" not in text
     assert "&lt;script&gt;alert" in text
+    assert 'class="brand-logo" viewBox="0 0 160 160"' in text
+    assert "M39 91L56 70L74 87L96 66L121 82" in text
     assert "<link" not in text
     assert 'src="http' not in text
 

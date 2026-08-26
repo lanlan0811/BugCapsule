@@ -72,6 +72,8 @@ def test_capsule_list_and_htmx_fragment_use_local_assets_and_shared_facts(tmp_pa
     assert "database_pool_exhausted" in page.text
     assert "https://" not in page.text
     assert "/static/vendor/htmx-2.0.10.min.js" in page.text
+    assert 'class="brand-icon" viewBox="0 0 160 160"' in page.text
+    assert "M39 91L56 70L74 87L96 66L121 82" in page.text
     assert "off · 未调用模型" in page.text
     assert fragment.status_code == 200
     assert "<html" not in fragment.text
@@ -340,21 +342,27 @@ def test_capsule_import_rejects_cross_site_invalid_and_oversized_uploads(tmp_pat
 def test_static_assets_are_packaged_and_untrusted_host_is_rejected(tmp_path: Path) -> None:
     application, _ = make_web_app(tmp_path)
 
-    async def request_assets() -> tuple[httpx.Response, httpx.Response, httpx.Response]:
+    async def request_assets() -> tuple[
+        httpx.Response, httpx.Response, httpx.Response, httpx.Response
+    ]:
         transport = httpx.ASGITransport(app=application)
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             css = await client.get("/static/app.css")
             htmx = await client.get("/static/vendor/htmx-2.0.10.min.js")
+            favicon = await client.get("/static/favicon.svg")
         async with httpx.AsyncClient(transport=transport, base_url="http://evil.example") as client:
             rejected = await client.get("/healthz")
-        return css, htmx, rejected
+        return css, htmx, favicon, rejected
 
-    css, htmx, rejected = asyncio.run(request_assets())
+    css, htmx, favicon, rejected = asyncio.run(request_assets())
 
     assert css.status_code == 200
     assert "--primary-600:#2a52a0" in css.text
     assert htmx.status_code == 200
     assert len(htmx.content) == 51238
+    assert favicon.status_code == 200
+    readme_icon = Path("docs/assets/brand/bugcapsule-app-icon.svg").read_text(encoding="utf-8")
+    assert favicon.text.strip() == readme_icon.strip()
     assert rejected.status_code == 400
 
 

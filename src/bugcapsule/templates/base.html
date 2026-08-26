@@ -1,3 +1,4 @@
+{% from "macros/brand.html" import app_icon %}
 {% from "macros/components.html" import icon, status_badge %}
 <!doctype html>
 <html lang="zh-CN">
@@ -39,7 +40,7 @@
 
   <header class="topbar">
     <a class="brand" href="/capsules" aria-label="BugCapsule 故障列表">
-      {{ icon('capsule', 'brand-icon') }}
+      {{ app_icon('brand-icon') }}
       <span>BugCapsule</span><span class="version">v{{ version }}</span>
     </a>
     <div class="topbar-actions">
