@@ -14,7 +14,11 @@ from bugcapsule.app import create_app
 from bugcapsule.config import Settings
 from bugcapsule.demo.controller import DemoControlError, DemoController, DemoRunResult
 from bugcapsule.index import CapsuleIndex
+from bugcapsule.patching.request import PatchRequest
+from bugcapsule.patching.schema import ModelPatchResponse
+from bugcapsule.patching.service import PatchGenerationService
 from tests.capsule.factories import make_stage_three_capsule
+from tests.patching.test_safety import SOURCE_PATH, diff_for
 
 
 def make_web_app(
@@ -106,7 +110,8 @@ def test_web_runs_analysis_and_renders_only_validated_root_causes(tmp_path: Path
         model_provider="test-provider",
     )
     index = CapsuleIndex(data_dir / "index.sqlite3", data_dir / "capsules")
-    make_stage_three_capsule(index.capsules_dir)
+    _, evidence = make_stage_three_capsule(index.capsules_dir)
+    source_evidence_id = next(item.evidence_id for item in evidence if item.kind.value == "source")
 
     class FakeClient:
         def analyze(self, request: AnalysisRequest) -> ModelAnalysisResponse:
@@ -123,10 +128,26 @@ def test_web_runs_analysis_and_renders_only_validated_root_causes(tmp_path: Path
                 )
             )
 
-    service = AnalysisService(settings, index=index, client=FakeClient())
-    application = create_app(settings, index, analysis_service=service)
+    class FakePatchClient:
+        def generate(self, request: PatchRequest) -> ModelPatchResponse:
+            assert source_evidence_id in request.included_evidence_ids
+            return ModelPatchResponse(
+                summary="确保异常路径归还数据库连接",
+                unified_diff=diff_for(SOURCE_PATH),
+                evidence_refs=(source_evidence_id,),
+                safety_notes=("保持接口行为",),
+            )
 
-    async def run_and_read() -> tuple[httpx.Response, httpx.Response, httpx.Response]:
+    service = AnalysisService(settings, index=index, client=FakeClient())
+    patch_service = PatchGenerationService(settings, index=index, client=FakePatchClient())
+    application = create_app(
+        settings,
+        index,
+        analysis_service=service,
+        patch_service=patch_service,
+    )
+
+    async def run_and_read() -> tuple[httpx.Response, ...]:
         transport = httpx.ASGITransport(app=application)
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             rejected = await client.post(
@@ -138,18 +159,29 @@ def test_web_runs_analysis_and_renders_only_validated_root_causes(tmp_path: Path
                 headers={"Origin": "http://testserver"},
                 follow_redirects=False,
             )
+            patched = await client.post(
+                "/capsules/cap_stage3_0001/patch",
+                headers={"Origin": "http://testserver"},
+                follow_redirects=False,
+            )
             detail = await client.get("/capsules/cap_stage3_0001")
-        return rejected, analyzed, detail
+        return rejected, analyzed, patched, detail
 
-    rejected, analyzed, detail = asyncio.run(run_and_read())
+    rejected, analyzed, patched, detail = asyncio.run(run_and_read())
     assert rejected.status_code == 403
     assert analyzed.status_code == 303
     assert analyzed.headers["location"] == "/capsules/cap_stage3_0001#analysis"
+    assert patched.status_code == 303
+    assert patched.headers["location"] == "/capsules/cap_stage3_0001#patch"
     assert detail.status_code == 200
     assert "模型分析结果" in detail.text
     assert "连接未归还导致连接池耗尽" in detail.text
     assert "96% 置信度" in detail.text
     assert "live · 实时" in detail.text
+    assert "安全检查已通过" in detail.text
+    assert "确保异常路径归还数据库连接" in detail.text
+    assert SOURCE_PATH in detail.text
+    assert "source_evidence_bound" in detail.text
 
 
 def test_capsule_import_validates_deduplicates_and_rejects_conflict(tmp_path: Path) -> None:

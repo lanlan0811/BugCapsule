@@ -15,6 +15,7 @@ from bugcapsule.config import Settings, get_settings
 from bugcapsule.demo.config import DemoSettings
 from bugcapsule.demo.controller import DemoControlError, DemoController, DemoRunResult
 from bugcapsule.index import CapsuleIndex, CapsuleIndexError
+from bugcapsule.patching.service import PatchGenerationError, PatchGenerationService
 
 app = typer.Typer(
     name="bugcapsule",
@@ -24,9 +25,11 @@ app = typer.Typer(
 demo_app = typer.Typer(help="管理可重复的数据库连接池故障演示。", no_args_is_help=True)
 index_app = typer.Typer(help="重建本地胶囊元数据索引。", no_args_is_help=True)
 capsules_app = typer.Typer(help="查询已索引的故障胶囊。", no_args_is_help=True)
+patch_app = typer.Typer(help="生成并检查证据约束的修复 Patch。", no_args_is_help=True)
 app.add_typer(demo_app, name="demo")
 app.add_typer(index_app, name="index")
 app.add_typer(capsules_app, name="capsules")
+app.add_typer(patch_app, name="patch")
 
 
 def version_callback(value: bool) -> None:
@@ -90,6 +93,35 @@ def analyze(
         result = AnalysisService(get_settings()).analyze(capsule_id, mode=selected_mode)
     except AnalysisError as exc:
         typer.echo(f"分析失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(canonical_json(result.to_dict()).decode("utf-8"))
+
+
+@patch_app.command("generate")
+def patch_generate(
+    capsule_id: str,
+    root_cause_id: Annotated[
+        str | None,
+        typer.Option("--root-cause-id", help="要修复的 Root Cause ID；默认选择排名第一项。"),
+    ] = None,
+    mode: Annotated[
+        str | None,
+        typer.Option("--mode", help="模型模式：live、replay 或 off；默认读取环境配置。"),
+    ] = None,
+) -> None:
+    """生成 unified diff，并在写入胶囊前完成确定性安全校验。"""
+    if mode not in {None, "live", "replay", "off"}:
+        typer.echo("Patch 生成失败：未知模型模式", err=True)
+        raise typer.Exit(code=1)
+    selected_mode = cast(Literal["live", "replay", "off"] | None, mode)
+    try:
+        result = PatchGenerationService(get_settings()).generate(
+            capsule_id,
+            root_cause_id=root_cause_id,
+            mode=selected_mode,
+        )
+    except PatchGenerationError as exc:
+        typer.echo(f"Patch 生成失败：{exc}", err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(canonical_json(result.to_dict()).decode("utf-8"))
 

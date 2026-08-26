@@ -156,7 +156,12 @@ def _flow_steps(detail: CapsuleDetail) -> tuple[dict[str, str], ...]:
             "anchor": "analysis",
             "note": "已完成" if analysis == "completed" else "未调用模型",
         },
-        {"label": "建议", "state": "pending", "anchor": "patch", "note": "未开始"},
+        {
+            "label": "建议",
+            "state": "completed" if detail.patch else "pending",
+            "anchor": "patch",
+            "note": "安全检查通过" if detail.patch else "未开始",
+        },
         {"label": "确认", "state": "pending", "anchor": "patch", "note": "未开始"},
         {
             "label": "验证",

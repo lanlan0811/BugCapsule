@@ -26,6 +26,19 @@ class ModelClient(Protocol):
     def analyze(self, request: AnalysisRequest) -> ModelAnalysisResponse: ...
 
 
+class StructuredRequest(Protocol):
+    """Fields required by every structured model request."""
+
+    @property
+    def instructions(self) -> str: ...
+
+    @property
+    def input_text(self) -> str: ...
+
+    @property
+    def output_schema(self) -> dict[str, Any]: ...
+
+
 class OpenAICompatibleClient:
     """Call Responses API or Chat Completions without retaining raw output."""
 
@@ -49,7 +62,17 @@ class OpenAICompatibleClient:
         )
 
     def analyze(self, request: AnalysisRequest) -> ModelAnalysisResponse:
-        url, body = self._request_payload(request)
+        output_text = self.request_structured(request, schema_name="bugcapsule_root_causes")
+        try:
+            return ModelAnalysisResponse.model_validate_json(output_text)
+        except ValidationError as exc:
+            raise InvalidModelResponseError(
+                "model returned an invalid structured response"
+            ) from exc
+
+    def request_structured(self, request: StructuredRequest, *, schema_name: str) -> str:
+        """Return JSON text without logging or retaining the raw provider response."""
+        url, body = self._request_payload(request, schema_name=schema_name)
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
@@ -62,14 +85,18 @@ class OpenAICompatibleClient:
             raise ModelClientError(f"model request failed with HTTP {response.status_code}")
         try:
             payload = cast(dict[str, Any], response.json())
-            output_text = self._extract_output_text(payload)
-            return ModelAnalysisResponse.model_validate_json(output_text)
-        except (ValueError, TypeError, KeyError, IndexError, ValidationError) as exc:
+            return self._extract_output_text(payload)
+        except (ValueError, TypeError, KeyError, IndexError) as exc:
             raise InvalidModelResponseError(
                 "model returned an invalid structured response"
             ) from exc
 
-    def _request_payload(self, request: AnalysisRequest) -> tuple[str, dict[str, Any]]:
+    def _request_payload(
+        self,
+        request: StructuredRequest,
+        *,
+        schema_name: str,
+    ) -> tuple[str, dict[str, Any]]:
         base_url = str(self.settings.model_base_url).rstrip("/")
         if self.settings.model_api_style == "responses":
             return (
@@ -83,7 +110,7 @@ class OpenAICompatibleClient:
                     "text": {
                         "format": {
                             "type": "json_schema",
-                            "name": "bugcapsule_root_causes",
+                            "name": schema_name,
                             "strict": True,
                             "schema": request.output_schema,
                         }
@@ -102,7 +129,7 @@ class OpenAICompatibleClient:
                 "response_format": {
                     "type": "json_schema",
                     "json_schema": {
-                        "name": "bugcapsule_root_causes",
+                        "name": schema_name,
                         "strict": True,
                         "schema": request.output_schema,
                     },

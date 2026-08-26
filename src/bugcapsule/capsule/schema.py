@@ -264,6 +264,69 @@ class PatchCandidate(CapsuleModel):
 
     _validate_diff_path = field_validator("diff_path")(validate_archive_path)
 
+    @classmethod
+    def create(
+        cls,
+        *,
+        root_cause_id: str,
+        summary: str,
+        diff_path: str,
+        sha256: str,
+        modified_files: tuple[str, ...],
+        evidence_refs: tuple[str, ...],
+        safety_checks: tuple[str, ...],
+    ) -> PatchCandidate:
+        """Assign a content-derived Patch ID after deterministic safety checks."""
+        identity = cls.identity_payload(root_cause_id, sha256, modified_files)
+        return cls(
+            patch_id=stable_identifier("PATCH", identity),
+            root_cause_id=root_cause_id,
+            summary=summary,
+            diff_path=diff_path,
+            sha256=sha256,
+            modified_files=modified_files,
+            evidence_refs=evidence_refs,
+            safety_checks=safety_checks,
+        )
+
+    @staticmethod
+    def identity_payload(
+        root_cause_id: str,
+        sha256: str,
+        modified_files: tuple[str, ...],
+    ) -> dict[str, Any]:
+        return {
+            "root_cause_id": root_cause_id,
+            "sha256": sha256,
+            "modified_files": list(modified_files),
+        }
+
+    @field_validator("modified_files")
+    @classmethod
+    def validate_modified_files(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        normalized = tuple(validate_archive_path(value) for value in values)
+        if normalized != tuple(sorted(normalized)):
+            raise ValueError("modified_files must be sorted")
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("modified_files must not contain duplicates")
+        return normalized
+
+    @model_validator(mode="after")
+    def verify_patch_candidate(self) -> PatchCandidate:
+        expected = stable_identifier(
+            "PATCH",
+            self.identity_payload(self.root_cause_id, self.sha256, self.modified_files),
+        )
+        if self.patch_id != expected:
+            raise ValueError("patch_id does not match canonical Patch content")
+        if self.summary != self.summary.strip():
+            raise ValueError("Patch summary must not have surrounding whitespace")
+        if len(self.evidence_refs) != len(set(self.evidence_refs)):
+            raise ValueError("Patch evidence_refs must not contain duplicates")
+        if len(self.safety_checks) != len(set(self.safety_checks)):
+            raise ValueError("Patch safety_checks must not contain duplicates")
+        return self
+
 
 class TestResult(CapsuleModel):
     """Immutable result of one preconfigured regression test command."""

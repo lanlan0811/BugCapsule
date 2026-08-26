@@ -29,6 +29,8 @@
 - 添加 OpenAI-compatible Responses/Chat Completions 适配器和 `live/replay/off` 模型模式。
 - 添加有输入预算的脱敏证据请求、严格根因 Schema、无效响应单次重试和本地 Evidence ID 强校验。
 - 添加结构化精确回放、原子分析产物写回、`analyze` CLI 与 Web 根因候选展示。
+- 添加 evidence-bound Patch 生成、Patch 专用精确回放和 `patch generate` CLI/Web 操作。
+- 添加严格 unified diff 解析、允许根/保护路径、源码 Evidence 绑定、工作区逃逸检查及导入时二次安全校验。
 
 ### 说明
 

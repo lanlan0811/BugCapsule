@@ -22,6 +22,8 @@ from bugcapsule.capsule.schema import (
     validate_evidence_references,
 )
 from bugcapsule.config import Settings
+from bugcapsule.patching.safety import PatchSafetyError, PatchSafetyValidator
+from bugcapsule.patching.schema import PatchArtifact
 
 INDEX_SCHEMA_VERSION = "2"
 
@@ -74,6 +76,8 @@ class CapsuleDetail:
     evidence: EvidenceChain
     redaction_report: RedactionReport
     analysis: AnalysisArtifact | None
+    patch: PatchArtifact | None
+    patch_diff: str | None
     archive_path: Path
 
     def to_dict(self) -> dict[str, Any]:
@@ -82,6 +86,7 @@ class CapsuleDetail:
             "manifest": self.manifest.model_dump(mode="json"),
             "redaction_report": self.redaction_report.model_dump(mode="json"),
             "analysis": self.analysis.model_dump(mode="json") if self.analysis else None,
+            "patch": self.patch.model_dump(mode="json") if self.patch else None,
             "ranked_evidence": [item.model_dump(mode="json") for item in self.evidence.ranked],
             "timeline": [
                 {
@@ -129,16 +134,27 @@ class CapsuleIndex:
         *,
         archive: CapsuleArchive | None = None,
         correlator: EvidenceCorrelator | None = None,
+        patch_validator: PatchSafetyValidator | None = None,
     ) -> None:
         self.database_path = database_path.resolve()
         self.capsules_dir = capsules_dir.resolve()
         self.archive = archive or CapsuleArchive()
         self.correlator = correlator or EvidenceCorrelator()
+        self.patch_validator = patch_validator or PatchSafetyValidator.defaults()
 
     @classmethod
     def from_settings(cls, settings: Settings) -> CapsuleIndex:
         data_dir = settings.data_dir.resolve()
-        return cls(data_dir / "index.sqlite3", data_dir / "capsules")
+        return cls(
+            data_dir / "index.sqlite3",
+            data_dir / "capsules",
+            patch_validator=PatchSafetyValidator(
+                source_root=settings.source_root,
+                allowed_roots=settings.patch_allowed_roots,
+                protected_paths=settings.patch_protected_paths,
+                max_bytes=settings.patch_max_bytes,
+            ),
+        )
 
     def rebuild(self) -> IndexRebuildResult:
         self.capsules_dir.mkdir(parents=True, exist_ok=True)
@@ -265,6 +281,7 @@ class CapsuleIndex:
             evidence = self.correlator.build(imported)
             redaction_report = self._redaction_report(imported)
             analysis = self._analysis_artifact(imported, evidence)
+            patch, patch_diff = self._patch_artifact(imported, evidence, analysis)
         except (CapsuleArchiveError, EvidenceLoadError) as exc:
             raise CapsuleIndexStaleError(f"indexed capsule is no longer valid: {exc}") from exc
         return CapsuleDetail(
@@ -273,6 +290,8 @@ class CapsuleIndex:
             evidence=evidence,
             redaction_report=redaction_report,
             analysis=analysis,
+            patch=patch,
+            patch_diff=patch_diff,
             archive_path=source,
         )
 
@@ -329,7 +348,8 @@ class CapsuleIndex:
         imported = self.archive.import_capsule(safe_source)
         evidence = self.correlator.build(imported)
         redaction_report = self._redaction_report(imported)
-        self._analysis_artifact(imported, evidence)
+        analysis = self._analysis_artifact(imported, evidence)
+        self._patch_artifact(imported, evidence, analysis)
         fault_type, fault_summary = self._fault_details(evidence)
         manifest = imported.manifest
         return {
@@ -383,6 +403,48 @@ class CapsuleIndex:
         except (ValidationError, ValueError) as exc:
             raise EvidenceLoadError("capsule contains an invalid analysis artifact") from exc
         return artifact
+
+    def _patch_artifact(
+        self,
+        imported: ImportedCapsule,
+        evidence: EvidenceChain,
+        analysis: AnalysisArtifact | None,
+    ) -> tuple[PatchArtifact | None, str | None]:
+        metadata = imported.payloads.get("patches/candidate.json")
+        diff_bytes = imported.payloads.get("patches/candidate.diff")
+        if metadata is None and diff_bytes is None:
+            return None, None
+        if metadata is None or diff_bytes is None:
+            raise EvidenceLoadError("capsule contains an incomplete Patch artifact")
+        if analysis is None:
+            raise EvidenceLoadError("capsule Patch is missing completed root-cause analysis")
+        try:
+            artifact = PatchArtifact.model_validate_json(metadata)
+            diff = diff_bytes.decode("utf-8")
+            candidate = artifact.candidate
+            if candidate.diff_path != "patches/candidate.diff":
+                raise ValueError("Patch diff path is not canonical")
+            if sha256_hex(diff_bytes) != candidate.sha256:
+                raise ValueError("Patch SHA-256 does not match diff payload")
+            root_cause_ids = {item.root_cause_id for item in analysis.root_causes}
+            if candidate.root_cause_id not in root_cause_ids:
+                raise ValueError("Patch references an unknown root cause")
+            validate_evidence_references(candidate.evidence_refs, set(evidence.evidence_ids))
+            source_paths = {
+                str(item.content["path"])
+                for item in evidence.items
+                if item.kind is EvidenceKind.SOURCE and isinstance(item.content.get("path"), str)
+            }
+            safe_patch = self.patch_validator.validate(diff, source_evidence_paths=source_paths)
+            if safe_patch.diff != diff:
+                raise ValueError("Patch diff is not canonical")
+            if safe_patch.modified_files != candidate.modified_files:
+                raise ValueError("Patch modified file inventory does not match diff")
+            if safe_patch.safety_checks != candidate.safety_checks:
+                raise ValueError("Patch safety check inventory does not match policy")
+        except (PatchSafetyError, UnicodeDecodeError, ValidationError, ValueError) as exc:
+            raise EvidenceLoadError("capsule contains an invalid or unsafe Patch artifact") from exc
+        return artifact, diff
 
     @staticmethod
     def _fault_details(evidence: EvidenceChain) -> tuple[str, str]:

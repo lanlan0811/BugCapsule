@@ -12,6 +12,7 @@ from bugcapsule.cli import app
 from bugcapsule.config import get_settings
 from bugcapsule.demo.controller import DemoControlError, DemoRunResult
 from bugcapsule.index import CapsuleIndexError
+from bugcapsule.patching.service import PatchGenerationError
 
 runner = CliRunner()
 
@@ -174,6 +175,48 @@ def test_analyze_command_reports_safe_error(monkeypatch: pytest.MonkeyPatch) -> 
     result = runner.invoke(app, ["analyze", "cap_stage3_0001"])
     assert result.exit_code == 1
     assert "分析失败" in result.stderr
+
+
+def test_patch_generate_command_emits_result_and_reports_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeResult:
+        def to_dict(self) -> dict[str, object]:
+            return {"status": "completed", "mode": "replay", "artifact": {}}
+
+    class FakePatchService:
+        def generate(self, capsule_id: str, **kwargs: object) -> FakeResult:
+            assert capsule_id == "cap_stage3_0001"
+            assert kwargs == {"root_cause_id": "RC-AAAAAAAAAAAA", "mode": "replay"}
+            return FakeResult()
+
+    monkeypatch.setattr("bugcapsule.cli.PatchGenerationService", lambda _: FakePatchService())
+    result = runner.invoke(
+        app,
+        [
+            "patch",
+            "generate",
+            "cap_stage3_0001",
+            "--root-cause-id",
+            "RC-AAAAAAAAAAAA",
+            "--mode",
+            "replay",
+        ],
+    )
+    invalid = runner.invoke(app, ["patch", "generate", "cap_stage3_0001", "--mode", "invalid"])
+    assert result.exit_code == 0
+    assert '"status":"completed"' in result.stdout
+    assert invalid.exit_code == 1
+    assert "未知模型模式" in invalid.stderr
+
+    class FailingPatchService:
+        def generate(self, capsule_id: str, **kwargs: object) -> None:
+            raise PatchGenerationError(f"unsafe Patch for {capsule_id}")
+
+    monkeypatch.setattr("bugcapsule.cli.PatchGenerationService", lambda _: FailingPatchService())
+    failed = runner.invoke(app, ["patch", "generate", "cap_stage3_0001"])
+    assert failed.exit_code == 1
+    assert "Patch 生成失败" in failed.stderr
 
 
 def test_index_and_capsule_query_commands_emit_deterministic_json(

@@ -36,6 +36,22 @@ def test_settings_reject_invalid_display_timezone(monkeypatch: pytest.MonkeyPatc
         Settings()
 
 
+def test_settings_load_and_validate_patch_path_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BUGCAPSULE_PATCH_ALLOWED_ROOTS", '["src","packages"]')
+    monkeypatch.setenv("BUGCAPSULE_PATCH_PROTECTED_PATHS", '["tests","uv.lock"]')
+    settings = Settings()
+    assert settings.patch_allowed_roots == ("src", "packages")
+    assert settings.patch_protected_paths == ("tests", "uv.lock")
+
+    monkeypatch.setenv("BUGCAPSULE_PATCH_ALLOWED_ROOTS", '["src","src"]')
+    with pytest.raises(ValidationError, match="duplicates"):
+        Settings()
+
+    monkeypatch.setenv("BUGCAPSULE_PATCH_ALLOWED_ROOTS", '["../outside"]')
+    with pytest.raises(ValidationError, match="traverse"):
+        Settings()
+
+
 def test_get_settings_caches_validated_instance() -> None:
     get_settings.cache_clear()
 

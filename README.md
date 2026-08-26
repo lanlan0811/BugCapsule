@@ -130,6 +130,15 @@ uv run bugcapsule analyze <capsule-id> --mode replay
 
 模型输入只包含胶囊中已脱敏、按优先级选择且受字节上限约束的证据。响应必须通过严格 JSON Schema，并且每个根因候选引用的 Evidence ID 必须存在于本次请求；格式或引用无效时只重试一次。根因 ID 由本地根据内容生成，模型无权指定。验证后的结果写入 `analysis/root-causes.json`，回放目录只保留结构化结果，不保存原始提示或原始响应。
 
+根因分析完成后，可生成只存入胶囊、不会应用到当前仓库的 Patch：
+
+```powershell
+uv run bugcapsule patch generate <capsule-id>
+uv run bugcapsule patch generate <capsule-id> --root-cause-id <root-cause-id> --mode replay
+```
+
+模型只能提出 unified diff，Patch ID、SHA-256、修改文件清单和安全结论全部由本地生成。解析器拒绝 Markdown 围栏、二进制内容、删除、重命名、复制、模式变化、非规范 Hunk、路径穿越和重复文件；修改路径还必须同时位于 `BUGCAPSULE_PATCH_ALLOWED_ROOTS`、不匹配 `BUGCAPSULE_PATCH_PROTECTED_PATHS`、对应胶囊中的源码 Evidence，并且解析后不逃离 `BUGCAPSULE_SOURCE_ROOT`。测试、依赖锁和项目配置默认属于保护路径。
+
 ## 质量检查
 
 ```powershell

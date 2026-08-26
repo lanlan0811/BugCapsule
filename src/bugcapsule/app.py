@@ -27,6 +27,10 @@ from bugcapsule.index import (
     CapsuleIndexStaleError,
     IndexRebuildResult,
 )
+from bugcapsule.patching.service import (
+    PatchGenerationError,
+    PatchGenerationService,
+)
 from bugcapsule.web.imports import CapsuleImportError, CapsuleUploadService
 from bugcapsule.web.viewmodels import (
     build_detail_view,
@@ -62,6 +66,7 @@ def create_app(
     capsule_index: CapsuleIndex | None = None,
     demo_controller: DemoController | None = None,
     analysis_service: AnalysisService | None = None,
+    patch_service: PatchGenerationService | None = None,
 ) -> FastAPI:
     """Build the local-only API and server-rendered Web application."""
     runtime_settings = settings or get_settings()
@@ -268,6 +273,42 @@ def create_app(
             )
         return RedirectResponse(
             f"/capsules/{capsule_id}#analysis",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    @application.post("/capsules/{capsule_id}/patch", tags=["patches"])
+    def generate_patch(request: Request, capsule_id: str) -> Response:
+        _require_local_origin(request)
+        runtime.ensure_index()
+        try:
+            service = patch_service or PatchGenerationService(runtime_settings, index=index)
+            result = service.generate(capsule_id)
+        except PatchGenerationError as exc:
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                context=page_context(
+                    request,
+                    active_nav="detail",
+                    title="Patch 生成失败",
+                    message=str(exc),
+                ),
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            )
+        if result.status == "model_off":
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                context=page_context(
+                    request,
+                    active_nav="detail",
+                    title="模型模式已关闭",
+                    message="将 BUGCAPSULE_MODEL_MODE 配置为 live 或 replay 后再生成 Patch。",
+                ),
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        return RedirectResponse(
+            f"/capsules/{capsule_id}#patch",
             status_code=status.HTTP_303_SEE_OTHER,
         )
 

@@ -56,6 +56,14 @@ SQLite 只保存可重建的列表元数据，例如胶囊 ID、状态、Trace/G
 
 `live` 只在响应完全有效后保存结构化回放记录；`replay` 必须命中相同请求 SHA-256、提供方和模型；`off` 不访问模型或索引。分析产物作为 `analysis/root-causes.json` 原子写回胶囊并更新清单 SHA-256，详情读取时会再次校验证据引用。原始提示和原始模型响应都不持久化。
 
+### Patch 安全层
+
+`PatchGenerationService` 选择已验证的根因候选并构造独立的有界请求。模型响应只包含摘要、unified diff、Evidence ID 和非权威安全备注；Patch ID、Diff SHA-256、修改文件清单和安全检查清单均由确定性代码生成。无效结构、证据引用或 Diff 最多重试一次，只有完全有效的结构化响应才会写入 Patch 回放。
+
+`PatchSafetyValidator` 仅接受规范 Git unified diff。它拒绝二进制内容、Markdown 围栏、删除/重命名/复制、文件模式变化、含糊文件头、无 Hunk、路径穿越、重复修改、允许根之外路径和保护路径。每个目标还必须对应胶囊中的 `SOURCE` Evidence，解析后的本地目标必须留在配置的源码工作区且不能是符号链接。导入与详情读取会重新执行同一安全策略，不信任胶囊中自报的 `safety_checks`。
+
+通过校验的 `patches/candidate.diff` 和 `patches/candidate.json` 原子写回胶囊。当前阶段只展示和导出 Patch，不应用工作区，也不执行任何模型提供的命令。
+
 ### Web
 
 Web 服务仅允许配置为 `127.0.0.1` 或 `localhost`，并校验 Host。页面由 Jinja2 服务端渲染；HTMX 2.0.10 与少量原生 JavaScript 均由 Python 包本地提供。胶囊上传受配置大小限制、同源检查和完整导入校验保护；相同 `capsule_id` 的不同字节不会覆盖现有归档。
@@ -66,4 +74,4 @@ CLI `capsules list/show` 和 Web 页面都从 `CapsuleSummary`、`CapsuleDetail`
 
 ## 尚未实现的边界
 
-Patch 安全检查、人工 SHA-256 确认、受限 Docker 验证器和 HTML 对比报告属于后续阶段。模型分析未运行时，Web 仍会明确显示“未调用模型”“尚无修复建议”和“验证未开始”，不会用占位结果冒充已完成事实。
+人工 SHA-256 确认、受限 Docker 验证器和 HTML 对比报告属于后续阶段。模型分析或 Patch 未运行时，Web 仍会明确显示“未调用模型”“尚无修复建议”和“验证未开始”，不会用占位结果冒充已完成事实。

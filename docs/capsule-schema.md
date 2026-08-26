@@ -14,8 +14,10 @@
 │   ├── logs.jsonl
 │   └── source-snippets.json
 ├── redaction-report.json
-├── analysis.json
+├── analysis/
+│   └── root-causes.json
 ├── patches/
+│   ├── candidate.json
 │   └── candidate.diff
 └── verification.json
 ```
@@ -37,6 +39,8 @@
 
 模型输出中的每个 `evidence_ref` 必须存在于当前胶囊。未知引用使整个响应无效；模型适配器最多重试一次，不允许静默删除未知引用。
 
+Root Cause ID 与 Patch ID 均由本地规范化内容派生，模型不能指定。Patch ID 绑定 Root Cause ID、canonical diff SHA-256 和有序修改文件清单；`candidate.json` 中的 SHA-256、修改范围和安全检查必须与 `candidate.diff` 的重新解析结果一致。
+
 ## 安全约束
 
 - 归档路径只允许非空相对 POSIX 路径。
@@ -47,6 +51,7 @@
 - `explicitly_approved=true` 时，`approved_sha256` 必须逐字等于 `patch_sha256`。
 - 导入限制文件数量、单文件大小、总解压大小和压缩比；拒绝重复成员、目录、加密成员、符号链接和未知压缩方法。
 - 导入后必须逐项验证 manifest 的路径集合、文件大小和 SHA-256，缺失、多余或篡改载荷一律拒绝。
+- Patch 只接受文本 Git unified diff；删除、重命名、复制、二进制、模式变化、测试/依赖/配置保护路径、无源码 Evidence 路径和工作区逃逸一律拒绝。
 
 ## 默认脱敏
 
