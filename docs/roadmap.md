@@ -1,25 +1,59 @@
-# BugCapsule 0.1 路线图
+# BugCapsule 0.1 路线图与发布门槛
 
-本页是公开里程碑摘要；详细范围和完成标准以比赛开发计划为准。
+路线图以开发计划为范围依据，以仓库、测试和 CI 事实为完成依据。状态只使用“已完成、进行中、外部待完成”，不以计划日期或占位文件替代验收。
 
-| 阶段 | 目标 | 状态 |
+## 1. 里程碑状态
+
+| 阶段 | 交付目标 | 当前状态 | 主要证据 |
+| --- | --- | --- | --- |
+| 1 | Python/CI 骨架、PostgreSQL 故障与 Docker 基线 | 已完成 | `pyproject.toml`、`compose.yml`、CI |
+| 2 | OpenTelemetry、默认脱敏、开放胶囊导入导出 | 已完成 | `capsule/`、Schema、安全测试 |
+| 3 | 证据关联、SQLite 索引、CLI 与 Web | 已完成 | `index.py`、Jinja2/HTMX 页面 |
+| 4 | OpenAI-compatible 分析与 Evidence-bound Patch | 已完成 | `analysis/`、`patching/` |
+| 5 | SHA-256 批准、隔离前后回归、自包含报告 | 已完成 | `verification/`、`reporting/` |
+| 6 | 12 案例评测、20 次稳定性、启动诊断、外部试用 | 进行中 | Replay 与 Docker CI 已完成；3–5 人试用和 Live 评测待完成 |
+| 7 | 治理、SBOM、双语文档、提交清单与 Release | 进行中 | 治理和供应链已自动化；正式 Release 待完成 |
+| 8 | 冻结回归、PDF、Windows 彩排与最终视频 | 进行中 | PDF 和 180 秒录制包已完成；彩排与 MP4 待完成 |
+
+## 2. 已闭合的工程门槛
+
+- Python 3.10、3.11、3.12 冻结依赖质量门禁；
+- Linux Docker 主场景 HTTP 就绪、`500/500/503` 与 reset；
+- 受限容器内修复前 20/20 失败、修复后 20/20 通过；
+- 195 项本机测试与 90.82% 分支覆盖率；
+- 12 个版本化仿真案例与 Replay 评测；
+- CycloneDX 1.6 SBOM、哈希锁定依赖审计、wheel/sdist 和 SHA-256 清单；
+- 中英文 README、架构、Schema、威胁模型和治理文件；
+- 8 页项目 PDF、180 秒镜头表、彩排门禁和八类提交清单；
+- Gitee 主仓与 GitHub 镜像 `master` 同步。
+
+## 3. `v0.1.0` 外部待完成门槛
+
+| 门槛 | 完成证据 | 当前状态 |
 | --- | --- | --- |
-| 1 | Python/CI 骨架、PostgreSQL 连接池故障、Docker 基线 | 已完成 |
-| 2 | 开放胶囊、默认脱敏、Trace/日志/源码/Git 捕获 | 已完成 |
-| 3 | 证据关联、SQLite 索引、CLI 与 Jinja2/HTMX Web | 已完成 |
-| 4 | OpenAI-compatible 分析、结构回放、Evidence-bound Patch 安全层 | 已完成 |
-| 5 | SHA-256 明确批准、受限 before/after 验证、自包含 HTML 报告 | 已完成 |
-| 6 | 12 案例量化评测、20 次稳定性回归、启动诊断、3-5 人试用 | 进行中；Docker CI 实测已完成，外部试用待完成 |
-| 7 | SBOM、依赖扫描、双语文档、Release 与提交材料 | 进行中；供应链、治理与八类提交清单已自动化，正式 Release 待完成 |
-| 8 | 冻结回归、项目 PDF、演示视频与三分钟路演验收 | 进行中；PDF 与机器校验的 180 秒录制包已完成，Docker 彩排与视频待完成 |
+| Live 模型评测 | 独立 `benchmark-live/evaluation.json`，含 provider、model、标注哈希和完整 12 案例 | 外部待完成 |
+| 首次使用者 | 3–5 名未参与开发者的 `output/usability/summary.json` | 外部待完成 |
+| Windows 录制彩排 | 绑定冻结提交的三轮 `rehearsal-summary.json`，至少一次断网 | 外部待完成 |
+| 最终视频 | 实际 3–5 分钟 MP4，完成哈希和断网兜底复核 | 外部待完成 |
+| 正式 Release | Gitee/GitHub 同一提交的 `v0.1.0`，附供应链包与校验和 | 外部待完成 |
 
-## 0.1.0 发布门槛
+## 4. 冻结规则
 
-- Gitee 主仓 `master` 通过 Python 3.10-3.12 质量门禁；
-- Docker 实机完成 20/20 修复前失败和 20/20 修复后通过；
-- Live 默认模型指标与注释回放指标分开发布；
-- 3-5 名首次使用者匿名汇总完成，中位启动时间有实测值；
-- CycloneDX SBOM、第三方声明、源代码包、wheel 和校验和随 Release 发布；
-- 项目介绍 PDF、3-5 分钟演示视频和断网回放路径经过最终彩排。
+代码冻结后只允许修复阻塞发布、安全或可复现性的缺陷；不升级依赖、不增加场景、不改变 Schema。每次冻结期变更必须重新执行完整测试、Docker CI、提交清单和受影响的录制彩排。
 
-未达到门槛的项目保持 `0.1.0` 开发状态，不以占位文件或估算结果标记完成。
+发布前运行：
+
+```powershell
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy
+uv run pytest
+uv run python scripts/validate_demo_plan.py
+uv run python scripts/validate_submission_manifest.py --require-ready
+```
+
+最后一条在任何外部交付缺失、状态未验证或 `release_commit` 未冻结时必须失败。
+
+## 5. 0.2 以后
+
+0.1 完成后再评估新的故障类型、跨语言采集、IDE 集成或远程 Agent。任何扩展都必须保留开放胶囊、Evidence 引用、人工批准和隔离验证四个核心边界；未经 0.1 真实用户与 Live 评测验证，不提前扩大范围。

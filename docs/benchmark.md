@@ -1,40 +1,77 @@
-# 仿真基准数据集
+# BugCapsule 仿真基准与量化评测
 
-BugCapsule 随 Python 包发布 `bugcapsule-simulated-root-cause-v1`。数据集由 12 个明确标注为仿真的案例组成，平均覆盖三类故障：
+基准用于回答两个不同问题：确定性分析管线是否可重复，以及所选 Live 模型在固定标注上的表现如何。两类结果必须分开发布。
 
-- 连接泄漏：Session、异常路径、事务和流式响应未释放连接；
-- 数据库不可达：连接拒绝、DNS、TLS 与端口配置；
-- 慢查询：缺少索引、复合索引、N+1 与排序溢写。
+## 1. 数据集
 
-每个案例包含稳定 Case/Capsule ID、故障输入、期望根因、可公开复核的关键词组以及根因必须覆盖的 Evidence 类型。源文件位于 `src/bugcapsule/benchmarking/dataset.json`，由严格 Pydantic Schema 校验：案例数不得少于 12，每类不得少于 4，Case ID、Capsule ID 和必需 Evidence 类型不得重复。
+随包发布的数据集名为 `bugcapsule-simulated-root-cause-v1`，包含 12 个明确标记 `simulated_data=true` 的案例：
 
-## 确定性生成
+| 故障类 | 数量 | 覆盖示例 |
+| --- | ---: | --- |
+| connection leak | 4 | Session、异常路径、事务、流式响应未释放 |
+| database unreachable | 4 | 连接拒绝、DNS、TLS、端口配置 |
+| slow query | 4 | 缺少索引、复合索引、N+1、排序溢写 |
+
+源文件为 [`src/bugcapsule/benchmarking/dataset.json`](../src/bugcapsule/benchmarking/dataset.json)。Pydantic Schema 要求至少 12 案例、每类至少 4 个、Case/Capsule ID 唯一、必需 Evidence 类型不重复。
+
+每个案例包含稳定 ID、仿真故障输入、人工期望根因、可公开复核的关键词组和根因必须覆盖的 Evidence 类型。它不是生产事故数据，也不代表真实流量分布。
+
+## 2. 确定性构建
 
 ```powershell
 uv run bugcapsule benchmark build --output .\benchmark-data
 ```
 
-命令生成 `annotations.json` 和 `capsules/*.bugcapsule`。Trace/Span ID、Git SHA、时间戳、Evidence ID、ZIP 元数据和载荷顺序均由版本化输入确定；相同版本在不同目录生成完全相同的归档字节。输出已存在时默认拒绝覆盖，只有显式 `--force` 才会替换同名基准文件。
+输出：
 
-`annotations.json` 的 SHA-256 会写入命令结果，后续评测报告必须携带该值，确保指标与确切标注版本绑定。仿真回放指标不能表述为真实生产数据或在线模型泛化能力；Live 评测必须另外记录提供方、模型和运行时间。
+```text
+benchmark-data/
+├── annotations.json
+└── capsules/
+    └── *.bugcapsule
+```
 
-## 量化评测
+Trace/Span ID、Git SHA、时间戳、Evidence ID、ZIP 元数据和成员顺序均从版本化输入派生。相同提交在不同目录生成相同归档字节。已存在输出默认拒绝覆盖；只有显式 `--force` 才替换。
+
+`annotations.json` 的 SHA-256 写入评测报告，使任何指标都绑定到确切标注版本。
+
+## 3. Replay 评测
 
 ```powershell
-# 无网络的注释回放：验证完整分析链、引用和计时口径
 uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay
+```
 
-# 使用 .env 中的默认 OpenAI-compatible 提供方和模型
+Replay 使用公开注释构造结构化响应，再通过正式 `AnalysisService`、Schema、Evidence 引用、胶囊写回和索引更新执行全部案例。它验证管线与计分器，不测量模型泛化能力。
+
+提供方固定记录为 `bugcapsule-annotated-replay`，模型标识为 `root-cause-v1`。
+
+## 4. Live 评测
+
+在 `.env` 配置比赛采用的 OpenAI-compatible provider 与 model 后运行：
+
+```powershell
 uv run bugcapsule benchmark run --mode live --output .\benchmark-live
 ```
 
-`evaluation.json` 逐案例记录完成状态、Top-1 匹配、引用数量、有效引用、必需 Evidence 类型覆盖，以及确定性处理、模型或回放边界、完整分析三段实测耗时。聚合区使用 nearest-rank 方法报告 P50/P95，并报告 Top-1 准确率、引用有效率和必需证据覆盖率。
+Live 报告必须保留 provider、model、开始/完成时间、标注 SHA-256 和全部 12 个逐案例结果。调用失败仍计入分母，按 Top-1 未命中处理，不能删除失败案例后重新计算。
 
-`replay` 的提供方固定标记为 `bugcapsule-annotated-replay`，结论来自公开注释，只能证明离线管线和评分方法可重复。`live` 才测量所配置模型，报告会保留实际 provider、model、开始/完成时间；模型调用失败的案例计入总样本并按 Top-1 未命中处理，不从分母中删除。
+## 5. 指标定义
 
-## 已复现实测
+| 指标 | 定义 |
+| --- | --- |
+| completed count | 完成严格结构化分析的案例数 / 12 |
+| Top-1 accuracy | 排名第一根因是否覆盖全部人工关键词组 |
+| citation validity | 有效 Evidence 引用数 / 总引用数 |
+| required evidence coverage | 覆盖案例规定 Evidence 类型的案例数 / 12 |
+| deterministic latency | 总分析耗时减去 provider/replay 边界耗时 |
+| model or replay latency | 仅 provider 或 Replay Store 边界耗时 |
+| total latency | 请求构造、边界调用、校验、归档写回与索引更新总耗时 |
 
-2026-08-26 在 Windows 10、Python 3.12.13 上对标注 SHA-256 `f6e603ca74bef5e6d563281b62141ba904ff78af3fd3f6bde2bed21ead9da01b` 执行一次 `replay`：
+P50/P95 使用 nearest-rank 方法。延迟是当前机器与当次运行的观测值，不是服务等级承诺。
+
+## 6. 已复现 Replay 结果
+
+环境：Windows 10、Python 3.12.13；标注 SHA-256：`f6e603ca74bef5e6d563281b62141ba904ff78af3fd3f6bde2bed21ead9da01b`。
 
 | 指标 | 实测值 |
 | --- | ---: |
@@ -43,7 +80,17 @@ uv run bugcapsule benchmark run --mode live --output .\benchmark-live
 | Evidence 引用有效率 | 100% |
 | 必需 Trace/日志/源码覆盖率 | 100% |
 | 确定性处理 P50 / P95 | 79.290 / 109.752 ms |
-| 注释回放读取 P50 / P95 | 0.751 / 4.458 ms |
+| Replay 读取 P50 / P95 | 0.751 / 4.458 ms |
 | 完整分析 P50 / P95 | 80.016 / 110.323 ms |
 
-这是一次机器相关的实际测量值，不是性能承诺。运行 `benchmark run` 会保留全部 12 条逐案例结果和测量时间；Live 默认模型结果将在配置比赛使用的提供方后单独发布，不能用上表替代。
+这些数字只证明当次注释回放结果。比赛默认 Live 模型尚未配置并独立发布，因此 README、PDF 和路演不得把上表称为模型准确率。
+
+## 7. 复核
+
+```powershell
+uv run pytest tests/benchmarking -o addopts=
+uv run bugcapsule benchmark build --output .\benchmark-data
+uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay
+```
+
+评审者应核对 `evaluation.json` 中的 `mode`、provider、model、标注摘要、逐案例失败和聚合指标，而不是只阅读百分比截图。

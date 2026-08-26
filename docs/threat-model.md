@@ -1,34 +1,79 @@
 # BugCapsule 威胁模型
 
-## 资产与信任边界
+本模型覆盖本地单用户、比赛演示和离线评审场景。它不把模型、导入胶囊、日志或 Patch 当作可信输入，也不把容器化等同于绝对隔离。
 
-受保护资产包括宿主源码与 Git 工作区、模型 API Key、运行日志中的凭据和个人数据、Docker Engine、胶囊完整性、人工批准意图及评测结果。主要信任边界为：运行中服务到捕获器、胶囊导入、胶囊到模型提供方、模型输出到 Patch 解析器、人工批准到验证器、宿主到验证容器、胶囊到 HTML 报告。
+## 1. 范围与安全目标
 
-模型输出、导入归档、日志、Trace、源码文本和回放文件都视为不可信数据。环境配置、本地确定性校验器和用户对完整 Patch SHA-256 的明确批准属于受信控制面，但仍需校验格式与范围。
+安全目标：
 
-## 威胁与控制
+1. 主源码、Git 工作区和人工批准意图不被模型或导入文件篡改；
+2. API Key、运行日志中的秘密和个人数据不进入胶囊、模型请求或报告；
+3. 胶囊、分析、Patch 与验证结果可检测篡改；
+4. Patch 只在受限临时副本中验证；
+5. Replay、仿真数据和外部待完成结果不被表述为 Live 或生产事实。
 
-| 威胁 | 主要控制 | 失败策略 |
-| --- | --- | --- |
-| ZIP Slip、绝对路径、重复或额外载荷 | POSIX 相对路径 Schema、成员集合/大小/SHA-256 全量校验、压缩比和总量上限 | 拒绝整个导入 |
-| 符号链接或工作区逃逸 | 导入拒绝符号链接；源码与 Patch 路径 resolve 后必须保持在允许根 | 拒绝捕获、Patch 或验证 |
-| 日志/源码提示注入 | 模型请求明确把内容标记为不可信证据；严格结构化输出；模型无权指定本地 ID | 无效结构只重试一次，随后失败 |
-| 伪造 Evidence 引用 | 请求记录实际包含的 Evidence ID；根因与 Patch 引用在本地验证 | 未知引用不持久化 |
-| 恶意 Patch 删除测试或依赖 | canonical unified diff 解析；拒绝二进制、删除、重命名、复制、模式变化；允许根与保护路径 | 不显示为安全 Patch，不进入验证 |
-| 批准后替换 Patch | Patch ID、Patch SHA-256、批准 SHA-256 与 Verification ID 内容绑定 | 在准备镜像前拒绝 |
-| 验证命令注入 | 命令和命令 ID 仅来自环境配置，使用 argv 执行；模型和表单不能提供命令 | 配置无效时启动失败 |
-| 容器访问网络、宿主密钥或 Docker Socket | 非 root、只读根/工作区、`network=none`、无 capabilities、`no-new-privileges`、资源/超时限制；只挂载临时副本 | 容器失败并记录为验证失败 |
-| 秘密或 PII 外泄 | 捕获前递归脱敏、模型前再次脱敏、验证日志再次脱敏；审计报告不存原文 | 命中替换为固定标记 |
-| HTML 主动内容或外带 | Jinja 自动转义、无脚本/外部资源、严格 CSP、`nosniff`、附件下载 | 未完成闭环不生成报告 |
-| 跨站本地操作 | Web 只绑定 loopback、Trusted Host、写操作同源检查 | 返回 403 |
-| 基准指标误导 | 数据强制 `simulated_data=true`；Replay 与 Live 身份分离；失败案例保留在分母 | 报告保留模式、模型、标注哈希和时间 |
+非目标：多用户认证、远程部署、生产 Agent、宿主内核加固和模型提供方合规认证。
 
-## 残余风险
+## 2. 受保护资产
 
-- Docker Engine 与宿主内核漏洞超出应用层隔离能力；比赛环境必须及时更新 Docker 与操作系统。
-- 正则脱敏无法保证识别所有业务专有敏感字段；共享前仍需人工复核。
-- OpenAI-compatible 提供方的数据保留与地域策略由使用者选择和配置，Live 模式会把已脱敏证据发送给该提供方。
-- 允许修改的业务源码仍可能包含逻辑型恶意变更；人工审批和专用回归降低风险，但不替代代码审查。
-- 当前单机场景不提供多用户授权、审计账户或远程部署安全边界。
+- 宿主源码、Git 元数据和回归测试；
+- `.env`、模型 API Key、数据库凭据；
+- Trace、日志、Stack Trace 和源码中的秘密/PII；
+- `.bugcapsule` 完整性和 Evidence 引用关系；
+- Patch ID、SHA-256 与用户批准；
+- Docker Engine、验证镜像和固定命令；
+- 基准标注、评测结果和提交材料状态。
 
-安全问题请按 [`SECURITY.md`](../SECURITY.md) 私密报告，不要在公开 Issue 中附带利用代码、真实秘密或生产胶囊。
+## 3. 信任边界
+
+```text
+运行服务 ──不可信遥测──> 捕获/脱敏器
+外部文件 ──不可信 ZIP──> 胶囊导入器
+胶囊证据 ──已脱敏数据──> 模型提供方
+模型响应 ──不可信结构──> Schema / Evidence / Patch 校验器
+用户输入 ──批准绑定────> 验证服务
+宿主源码 ──临时副本────> 受限 Docker 容器
+胶囊详情 ──转义渲染────> HTML 报告
+```
+
+受信控制面是本地配置、确定性校验器、锁定回归和用户对完整摘要的明确批准；这些输入仍需格式与范围检查。
+
+## 4. 威胁、控制与验证证据
+
+| 威胁 | 主要控制 | 失败策略 | 证据 |
+| --- | --- | --- | --- |
+| ZIP Slip、绝对路径、额外载荷 | POSIX 路径约束；成员集合、大小、SHA-256、压缩比和总量校验 | 拒绝整个导入 | `tests/capsule/test_archive.py` |
+| 符号链接与工作区逃逸 | 导入拒绝链接；源码与 Patch 目标 resolve 后必须位于允许根 | 拒绝捕获、Patch 或验证 | `tests/patching/test_safety.py` |
+| 提示注入 | 请求将证据标为不可信；严格输出 Schema；模型不能指定本地 ID | 最多重试一次 | `tests/analysis/test_service.py` |
+| 伪造 Evidence 引用 | 本地保存实际输入集合并逐项校验 | 未知引用不持久化 | `tests/analysis/test_service.py` |
+| 恶意 Patch 修改测试/依赖 | canonical diff；允许根、保护路径、源码 Evidence 三重约束 | 不生成安全 Patch | `tests/patching/test_safety.py` |
+| 批准后替换 Patch | Patch ID、Patch SHA-256、批准 SHA-256、Verification ID 内容绑定 | Docker 启动前拒绝 | `tests/verification/test_service.py` |
+| 验证命令注入 | 命令和命令 ID 只来自配置并使用 argv 执行 | 配置无效时失败 | `src/bugcapsule/verification/service.py` |
+| 容器访问公网或宿主秘密 | 非 root、只读、`network=none`、无 capabilities、无 Docker Socket、资源限制 | 记录验证失败 | `tests/verification/test_docker.py` |
+| 秘密或 PII 外泄 | 捕获前、模型前、验证输出三次脱敏；报告不存原文 | 替换为固定标记 | `tests/capsule/test_redaction.py` |
+| HTML 主动内容/外带 | Jinja 自动转义；无脚本/外链；严格 CSP、`nosniff`、附件下载 | 未完成闭环不生成 | `tests/reporting/test_service.py` |
+| 本地跨站写操作 | loopback 绑定、Trusted Host、Origin 检查 | 返回 403 | `tests/test_web.py` |
+| 基准或提交状态误导 | `simulated_data=true`；Live/Replay 分栏；失败保留分母；机器清单状态门禁 | 未就绪时拒绝 Release | `tests/test_submission_manifest.py` |
+
+## 5. 数据最小化
+
+模型请求只包含完成脱敏、按优先级选择且受字节上限约束的证据。系统不持久化原始提示或原始提供方响应。SQLite 只保存列表元数据；日志、Stack Trace、源码正文留在完整性受保护的归档中。
+
+Live 模式会把已脱敏证据发送给用户配置的 OpenAI-compatible 提供方。提供方的数据保留、地域和训练策略不由 BugCapsule 控制，启用前必须由使用者评估。
+
+## 6. 隔离假设
+
+验证器依赖 Docker Engine、宿主内核和锁定镜像正确实施命名空间、只读挂载和资源限制。它显著缩小 Patch 的执行权限，但不能抵御 Docker/内核漏洞。比赛环境必须更新系统与 Docker，并避免在高价值宿主上验证不可信代码。
+
+## 7. 残余风险
+
+- 正则脱敏无法识别所有业务专有密钥和间接身份信息；共享前仍需人工复核；
+- 允许修改的业务源码可能包含逻辑型恶意行为，固定回归不覆盖全部语义；
+- 本地 loopback 服务仍信任当前操作系统账户；
+- 依赖漏洞审计只覆盖已公开且能映射到包版本的公告；
+- 仿真数据不能代表真实生产分布，12 案例 Replay 不能替代 Live 模型评测；
+- 0.1 没有多租户授权、集中审计或远程 Agent 边界。
+
+## 8. 安全报告
+
+发现漏洞时请遵循 [`SECURITY.md`](../SECURITY.md) 私下报告。不要在公开 Issue、日志或附件中提交真实密钥、生产胶囊、个人数据或可直接利用的细节。
