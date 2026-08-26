@@ -1,38 +1,40 @@
-# BugCapsule 示例胶囊
+# BugCapsule 可导入示例
 
-本目录提供一个可以直接导入 BugCapsule Web 的最小示例：
+本目录提供一个最小、确定性、明确标注为仿真的 `.bugcapsule`，用于第一次浏览格式和验证导入链路。
 
-| 文件 | 场景 | 数据性质 | Capsule ID |
+| 文件 | 场景 | Capsule ID | 数据边界 |
 | --- | --- | --- | --- |
-| `connection-leak-simulated.bugcapsule` | 数据库 Session 未关闭，连接未归还并最终耗尽连接池 | 明确标注的仿真数据 | `cap_eval_001` |
+| `connection-leak-simulated.bugcapsule` | Session 未关闭导致连接池耗尽 | `cap_eval_001` | 仿真 Trace、日志与源码，无生产数据 |
 
-该文件来自随包发布的 `bugcapsule-simulated-root-cause-v1` 数据集案例 `BC-EVAL-001`，不含真实生产日志、用户数据、密钥或专有源码。它包含两个 Trace/Span 事件、一条错误日志、Stack Trace、三行仿真源码、Git/环境摘要和脱敏报告；分析与验证状态均为 `not_run`，不能把人工标注答案冒充模型输出。
+示例来自版本化数据集 `bugcapsule-simulated-root-cause-v1` 的 `BC-EVAL-001`。归档包含两个 Span、一条错误日志、Stack Trace、三行仿真源码、Git/环境摘要和脱敏报告。分析、Patch 与验证均为 `not_run`；人工标注答案不写入胶囊，也不能冒充模型结果。
 
-## 校验与导入
-
-先核对仓库记录的 SHA-256：
+## 1. 校验文件
 
 ```powershell
 Get-FileHash -Algorithm SHA256 .\examples\connection-leak-simulated.bugcapsule
 Get-Content .\examples\SHA256SUMS
 ```
 
-期望摘要为 `8a3f6438b98ebbcf14413eeb91d277b6e942a43a4df2c361808e62e9f0a46483`。随后启动本地服务，在顶栏选择“导入胶囊”：
+期望 SHA-256：
+
+```text
+8a3f6438b98ebbcf14413eeb91d277b6e942a43a4df2c361808e62e9f0a46483
+```
+
+## 2. 导入浏览
 
 ```powershell
 uv sync --frozen --group dev
 uv run bugcapsule serve
 ```
 
-导入器会重新执行扩展名、大小、ZIP 成员、路径、Schema、清单 SHA-256 和证据关联校验；不要因为文件来自仓库而绕过这些检查。
+打开本地 Web 后选择“导入胶囊”。导入器会重新验证扩展名、大小、ZIP 成员、路径、Schema、清单 SHA-256 和 Evidence 关系；仓库内文件也不绕过安全检查。
 
-## 确定性再生成
-
-以下命令会从包内版本化标注生成全部 12 个案例：
+## 3. 确定性再生成
 
 ```powershell
 uv run bugcapsule benchmark build --output .\benchmark-data
 Get-FileHash -Algorithm SHA256 .\benchmark-data\capsules\cap_eval_001.bugcapsule
 ```
 
-未修改数据集、Schema 或生成器时，`cap_eval_001.bugcapsule` 应与本目录示例逐字节一致。若有意更新数据集，必须同时评审标注 SHA-256、示例文件、`SHA256SUMS`、基准文档和相关测试；不能只替换二进制文件。
+在数据集、Schema 和生成器未变化时，新文件应与示例逐字节一致。若有意更新，必须同时评审数据集标注哈希、示例归档、`SHA256SUMS`、[基准文档](../docs/benchmark.md)和相关测试。

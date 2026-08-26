@@ -1,82 +1,84 @@
 # 为 BugCapsule 做贡献
 
-感谢你参与 BugCapsule。项目当前聚焦于 `0.1.0`：把一次故障封装成可校验、可脱敏的证据胶囊，让根因和补丁引用明确证据，并在隔离环境中验证修复结果。
+BugCapsule 接受缺陷修复、测试、文档、安全加固和范围明确的功能贡献。0.1 阶段的核心约束是：胶囊是事实源，分析必须引用 Evidence，Patch 必须经过确定性安全校验，执行前必须人工批准并进入隔离验证。
 
-Gitee 是本项目的主仓库，也是唯一的 Issue 和贡献入口：
+## 1. 协作入口
+
+Gitee 是主仓库及 Issue、Pull Request 的唯一入口：
 
 - 仓库：<https://gitee.com/lan0811/bug-capsule>
 - Issues：<https://gitee.com/lan0811/bug-capsule/issues>
 - Pull Requests：<https://gitee.com/lan0811/bug-capsule/pulls>
 
-GitHub 若存在，仅作为镜像；请不要在镜像仓库提交 Issue 或 Pull Request。
+GitHub 仅作同步镜像。安全漏洞不要提交公开 Issue，请按 [安全策略](SECURITY.md) 私密报告。
 
-## 开始之前
+## 2. 开发环境
 
-1. 搜索现有 Issue，确认问题或建议尚未被记录。
-2. 对缺陷、文档修正和小型改进，先创建或认领 Issue。
-3. 对 Schema、公开 API、安全边界、依赖栈或产品范围的重大变更，应先在 Issue 中讨论方案。
-4. 安全漏洞不得提交公开 Issue，请按 [SECURITY.md](SECURITY.md) 私密报告。
+支持 Python 3.10–3.12；主演示和 Patch 验证还需要 Docker Desktop/WSL2 或兼容 Docker Engine。Windows 使用 PowerShell，敏感配置只写入未跟踪的 `.env`。
 
-## 当前开发环境
+```powershell
+git clone https://gitee.com/lan0811/bug-capsule.git
+Set-Location bug-capsule
+Copy-Item .env.example .env
+uv sync --frozen --group dev
+uv run bugcapsule doctor
+```
 
-项目计划支持：
+不要修改锁文件来绕过安装失败。依赖确需变更时，必须说明原因、最小化范围，并同步评审 SBOM 和第三方许可影响。
 
-- Python 3.10–3.12；
-- Docker Desktop/WSL2，或 Linux/macOS 上的 Docker；
-- PostgreSQL 演示服务；
-- Windows PowerShell 与 Linux/macOS shell。
+## 3. 选择改动范围
 
-项目骨架、依赖锁和标准开发命令仍在建设中。在 `pyproject.toml`、锁文件及开发脚本提交后，本节会补充可直接复制的安装、检查和测试命令。请勿仅为搭建环境而提前引入未讨论的工具链。
+先搜索现有 Issue。下列变更必须在实现前讨论：
 
-## 贡献流程
+- Capsule Schema、Evidence ID 或归档兼容性；
+- 公开 CLI、Web 路由或配置变量；
+- 脱敏、安全策略、保护路径或验证隔离；
+- 运行时/开发依赖、容器和 CI；
+- 超出 0.1 路线图的产品能力。
 
-1. Fork 主仓库并从最新主分支创建短生命周期分支。
-2. 建议使用 `feat/<topic>`、`fix/<topic>`、`docs/<topic>`、`test/<topic>` 或 `refactor/<topic>` 命名。
-3. 保持每个提交目标单一，提交信息清楚说明意图，例如 `docs: add capsule schema`。
-4. 添加或更新与变更相称的测试和文档。
-5. 在本地完成适用的格式化、静态检查、单元测试和集成测试。
-6. 使用仓库 PR 模板提交 Pull Request，并关联对应 Issue。
+一个 Pull Request 只解决一个清晰问题。建议分支命名为 `feat/<topic>`、`fix/<topic>`、`docs/<topic>`、`test/<topic>` 或 `refactor/<topic>`。
 
-## 代码与设计要求
+## 4. 实现不变量
 
-- 优先提交小而可审查的变更，不在同一 PR 中混入无关重构。
-- 公开格式和接口应保持向后兼容；不兼容变更必须说明迁移方案。
-- 模型结论必须引用胶囊中真实存在的 `evidence_id`，无证据时应明确标记未知。
-- 模型只能建议 unified diff；验证命令、允许修改的路径和安全策略由确定性代码控制。
-- Patch 不得修改测试、依赖锁、Docker 或 CI 配置，除非该变更本身已在 Issue 中获准。
-- 密钥只允许从环境变量读取，不得写入源码、示例、日志、测试夹具或胶囊。
-- 新增采集字段时，必须评估隐私影响并同步更新脱敏规则、Schema 和威胁模型。
-- 新增运行时依赖时，必须更新确定性依赖锁、SBOM 和 `THIRD_PARTY_NOTICES`（如许可证要求）。
+- 不硬编码凭据、端口、模型或机器路径；配置放入环境变量，并更新 `.env.example`。
+- 不在源码、测试夹具、胶囊、截图或日志中提交真实秘密和个人数据。
+- 不使用模型输出决定命令、允许路径、ID、摘要或批准结果。
+- 不让 Patch 修改测试、依赖锁、Docker、CI 或允许根外文件。
+- 新增证据字段时同步更新 Schema、脱敏规则、威胁模型和正反测试。
+- UI 图标使用仓库内 SVG，不使用 emoji、CDN、远程字体或运行时外链资源。
+- 公开格式保持向后兼容；不可兼容变更必须升级版本并提供迁移说明。
 
-## 测试期望
+## 5. 质量门禁
 
-按变更范围提供相应证据：
+提交前运行完整门禁：
 
-- Schema：正例、反例、必填字段和版本兼容测试；
-- 证据链：Evidence ID 稳定性、排序及未知引用拒绝测试；
-- 脱敏：凭据、连接串和常见个人信息测试；
-- Patch：路径穿越、保护路径、二进制、删除及重命名拒绝测试；
-- 验证器：超时、资源限制、网络隔离和确认哈希测试；
-- 主演示：原始版本预期失败、批准补丁后预期通过。
+```powershell
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy
+uv run pytest
+```
 
-测试输出、录屏和示例胶囊不得包含真实生产数据或个人信息。
+涉及 Docker 主演示时，额外执行：
 
-## 文档
+```powershell
+uv run bugcapsule demo up
+uv run bugcapsule demo run
+uv run bugcapsule demo capture
+uv run bugcapsule demo reset
+uv run bugcapsule demo down
+```
 
-中文文档是当前主要维护版本。面向使用者的关键内容应同时提供英文摘要或英文版本。修改架构、安全边界、Capsule 格式或版本计划时，请同步更新 `docs/` 中相应文档和 `CHANGELOG.md`。
+测试应覆盖成功、拒绝和边界路径。安全相关更改至少包含可证明控制有效的负例；文档或产物变更要检查相对链接、SHA-256、机器清单和渲染结果。
 
-## Pull Request 检查清单
+## 6. 提交 Pull Request
 
-提交前请确认：
+PR 描述必须包含动机、改动边界、风险和实际验证结果，并关联 Issue。提交前确认：
 
-- 变更有清楚的动机、范围和验证方式；
-- 已关联 Issue，或在 PR 中说明无需 Issue 的原因；
-- 自动化及手工检查均已完成，并记录实际结果；
-- 没有调试残留、敏感信息或未声明的第三方资产；
-- 相关 README、Schema、安全文档和变更日志已更新；
-- 如使用生成式 AI 辅助，贡献者已审查生成内容，并对正确性、来源和许可证负责。
+- 工作区无调试残留、秘密、真实业务数据或未声明第三方资产；
+- 测试与文档和代码一起更新；
+- `CHANGELOG.md` 记录用户可见变化；
+- 生成式 AI 辅助内容已由贡献者逐项审查，来源和许可证清晰；
+- 作者有权按 Apache-2.0 贡献代码、文档、测试和素材。
 
-## 许可证
-
-除非你明确书面声明，否则有意提交并被项目接收的贡献将依照 [Apache License 2.0](LICENSE) 第 5 节授权，不附加额外条款。提交前请确认你有权贡献相关代码、文档、测试和素材。
-
+除非另有书面声明，被项目接受的有意贡献依照 [Apache License 2.0](LICENSE) 第 5 节授权，不附加额外条款。

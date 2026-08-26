@@ -1,6 +1,10 @@
-# 首次使用者验收输出
+# 首次使用者验收数据契约
 
-本目录当前只包含结构化采集和匿名汇总说明，不包含虚构参与者或占位结果。完成 3–5 名未参与开发的志愿者试用后，在仓库外建立输入目录；每名参与者使用一个 JSON 文件，且只能包含下列字段：
+本目录只保存匿名汇总，不保存逐人响应、自由文本或占位结果。研究流程见[首次使用者协议](../../docs/usability-study.md)。
+
+## 1. 原始响应格式
+
+在仓库外为每名参与者保存一个 JSON：
 
 ```json
 {
@@ -17,14 +21,21 @@
 }
 ```
 
-允许的系统值为 `windows_10`、`windows_11`、`linux`。文档缺口代码为 `dependency_install`、`environment_file`、`docker_startup`、`fault_capture`、`evidence_navigation`、`patch_approval`、`verification_report` 或单独的 `none`。自由文本、姓名、账号、公司、路径、密钥、设备标识和联系方式不得进入 JSON。
+允许的操作系统：`windows_10`、`windows_11`、`linux`。
 
-生成只含汇总指标的结果：
+文档缺口代码：`dependency_install`、`environment_file`、`docker_startup`、`fault_capture`、`evidence_navigation`、`patch_approval`、`verification_report`，或单独使用 `none`。
+
+禁止添加姓名、账号、公司、联系方式、用户路径、密钥、设备标识和自由文本。未知字段会被拒绝。
+
+## 2. 生成匿名汇总
 
 ```powershell
+$ResponseDir = Read-Host '请输入仓库外的响应目录'
 uv run python scripts/aggregate_usability_study.py `
-  --input-dir C:\safe-local\bugcapsule-usability-responses `
+  --input-dir $ResponseDir `
   --output output\usability\summary.json
 ```
 
-工具要求恰好 3–5 个唯一匿名编号、全部明确同意匿名发布，并拒绝未知字段。输出不包含参与者逐行记录或自由文本；原始响应继续保存在仓库外。当前尚未执行真实试用，因此 `summary.json` 不存在。
+工具要求 3–5 个唯一匿名编号和全部发布同意，并拒绝越界值、未知枚举和输入/输出目录重叠。输出只包含群组指标，不含 `participant_id` 或逐人数据，且默认不覆盖已有结果。
+
+当前真实试用尚未执行，所以 `summary.json` 不存在；这正是预期状态。

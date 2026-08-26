@@ -1,17 +1,36 @@
-# 最终提交材料清单
+# BugCapsule 最终提交材料清单
 
-[`submission-manifest.json`](submission-manifest.json)逐项对应开发计划 7.2 的八类最终交付物。仓库内已验证项必须链接现有文件；部分完成和外部待完成项必须说明阻塞原因，不以空文件或估算结果冒充完成。
+[`submission-manifest.json`](submission-manifest.json)是开发计划八类交付物的机器真源。文档、状态、现有证据和预期输出必须一致：未完成项保留阻塞原因，不创建空文件、不以估算结果冒充实测。
 
-检查当前清单结构与证据路径：
+## 1. 八类交付物
+
+| 类别 | 当前状态 |
+| --- | --- |
+| Gitee 主仓、GitHub 镜像与正式 Release | 部分验证 |
+| 中英文文档 | 已验证 |
+| 示例胶囊与 12 案例评测 | 已验证 |
+| 8 页项目 PDF | 已验证 |
+| 三分钟演示视频 | 外部待完成 |
+| 断网回放演示 | 部分验证 |
+| SBOM、许可与 Release 供应链附件 | 部分验证 |
+| 评审证据索引 | 已验证 |
+
+## 2. 日常结构校验
 
 ```powershell
 uv run python scripts/validate_submission_manifest.py
 ```
 
-代码冻结并准备创建正式标签前执行严格门禁：
+该命令检查 Schema、八类唯一 ID、状态枚举、安全相对路径、已验证文件存在性和未完成项阻塞说明。
+
+## 3. 正式发布门禁
+
+代码冻结、外部材料就绪后，把 `release_commit` 写为冻结提交的完整 40 位小写 SHA，并执行：
 
 ```powershell
 uv run python scripts/validate_submission_manifest.py --require-ready
 ```
 
-严格门禁要求全部八类交付物为 `verified`、所有预期输出真实存在，并且 `release_commit` 是完整 40 位小写 Git SHA。GitHub 标签 Release 工作流会执行同一检查；当前仍有视频、断网彩排、供应链 Release 附件和正式标签等外部事项，因此严格命令按设计返回失败。
+严格模式要求八类交付物全部为 `verified`，所有 `expected_outputs` 真实存在且 `release_commit` 合法。GitHub 标签 Release 工作流执行同一门禁。
+
+当前视频、三轮断网彩排、正式供应链附件和 `v0.1.0` 标签尚未完成，所以严格模式按设计失败；普通结构校验必须通过。

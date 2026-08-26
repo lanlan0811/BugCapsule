@@ -1,25 +1,29 @@
-# 三分钟主演示运行手册
+# BugCapsule 三分钟主演示运行手册
 
-本手册是录制与现场路演的操作真源，时间线由 [`demo-shot-list.json`](../output/video/demo-shot-list.json) 机器校验。目标成片严格为 180 秒；比赛允许 3–5 分钟，但不以冗长等待占用评审时间。
+本手册是比赛录制与现场路演的操作真源。机器可读时间线位于 [`demo-shot-list.json`](../output/video/demo-shot-list.json)，严格覆盖 0–180 秒。所有画面必须来自同一冻结提交，不用占位文件、旧胶囊或测试夹具冒充现场结果。
 
-## 演示口径
+## 1. 口径与红线
 
-- 故障注入、Trace/日志捕获、胶囊生成与隔离验证必须来自实际 Docker 运行，画面不得用测试夹具冒充实机结果。
-- 模型分析和 Patch 生成在正式录制中采用 `replay`，画面始终保留“replay · 结构化离线回放”状态；它证明可重复管线，不代表 Live 模型指标。
-- Live 模型评测只在单独的 `benchmark-live` 报告中陈述，未完成时不口播模型准确率。
-- 断网兜底只使用同一提交完成彩排后冻结的胶囊、HTML 报告和评测报告，不以旧材料替代当前发布证据。
-- 屏幕中不得出现 `.env`、API Key、Authorization、Cookie、真实业务数据、用户目录或通知弹窗。
+- 故障、证据同步、胶囊捕获和隔离验证来自实际 Docker 运行；
+- 分析与 Patch 固定使用 `replay`，画面显示“replay · 结构化离线回放”；
+- Replay 证明管线和评分器可重复，不代表 Live 模型能力；
+- Live 指标仅在独立 `benchmark-live/evaluation.json` 完成后陈述；
+- 断网兜底必须绑定冻结提交并通过完整彩排；
+- 屏幕不得出现 `.env`、密钥、Authorization、Cookie、真实业务数据、用户目录或系统通知。
 
-## 录制前一次性准备
+## 2. 冻结前准备
 
-在用于比赛的全新 Windows + Docker Desktop 环境执行：
+在录制用 Windows 10/11 与 Docker Desktop 环境执行：
 
 ```powershell
 Copy-Item .env.example .env
-# 仅在本地编辑 .env 中的演示密码和模型配置，不录屏、不提交。
+# 仅在本机编辑 .env，不录屏、不提交。
 uv sync --frozen --group dev
-uv run bugcapsule doctor
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy
 uv run pytest
+uv run bugcapsule doctor
 uv run bugcapsule demo up
 uv run bugcapsule demo run
 uv run bugcapsule demo capture
@@ -28,48 +32,50 @@ uv run bugcapsule benchmark build --output .\benchmark-data
 uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay
 ```
 
-只有 `doctor.ready=true`、全量测试通过、故障序列为 `500 → 500 → 503` 且捕获后的胶囊可以打开时，才进入录制。录像使用 1920×1080、30 fps、浏览器 100% 缩放；系统通知、输入法浮窗与任务栏敏感信息全部关闭。
+只有以下条件同时满足才可冻结提交：`doctor.ready=true`、完整质量门禁通过、故障序列为 `500 → 500 → 503`、新胶囊可导入、Replay 请求精确命中、验证为 before 失败/after 通过，且主工作区目标文件摘要未变化。
 
-## 180 秒操作时间线
+录制规格固定为 1920×1080、30 fps、浏览器 100% 缩放。关闭通知、输入法浮窗、密码管理器提示和包含个人信息的任务栏区域。
 
-| 时间 | 操作 | 必须入镜的证明 |
+## 3. 180 秒镜头表
+
+| 时间 | 操作 | 必须可见的证明 |
 | --- | --- | --- |
-| 00:00–00:12 | 正常订单与 Trace | HTTP 201、连接池 ready、Trace Context |
-| 00:12–00:28 | 点击“触发故障” | HTTP 500 → 500 |
+| 00:00–00:12 | 展示健康状态与正常订单 | HTTP 201、pool ready、Trace Context |
+| 00:12–00:28 | 连续触发两次泄漏 | HTTP 500 → 500、leaked sessions = 2 |
 | 00:28–00:42 | 定格第三次请求 | HTTP 503、`database_pool_exhausted` |
-| 00:42–00:56 | 点击“同步并捕获”并打开胶囊 | 32 位 Trace ID、胶囊详情链接 |
-| 00:56–01:18 | 展开证据时间线 | Trace、日志、源码 Evidence ID |
-| 01:18–01:40 | 运行 replay 分析 | replay 徽标、根因引用 |
-| 01:40–02:00 | 生成并检查 Patch | canonical Diff、路径策略、源码绑定 |
-| 02:00–02:12 | 核对并批准 | Patch ID、完整 SHA-256、明确批准 |
-| 02:12–02:42 | 运行隔离验证 | before failed、after passed、主仓未变 |
-| 02:42–03:00 | 打开 HTML 报告与指标 | 自包含报告、12 案例、Replay/Live 边界 |
+| 00:42–00:56 | 同步证据并捕获胶囊 | 32 位 Trace ID、胶囊详情入口 |
+| 00:56–01:18 | 展开因果时间线 | Trace、日志、源码 Evidence ID |
+| 01:18–01:40 | 运行 Replay 分析 | replay 标识、根因与有效引用 |
+| 01:40–02:00 | 生成并检查 Patch | canonical diff、允许路径、源码绑定 |
+| 02:00–02:12 | 核对并批准 | 完整 Patch ID、64 位 SHA-256、明确批准 |
+| 02:12–02:42 | 执行隔离验证 | before failed、after passed、workspace unchanged |
+| 02:42–03:00 | 打开报告和评测摘要 | 自包含 HTML、12 案例、Replay/Live 边界 |
 
-镜头切换、鼠标位置、口播逐句文本与仓库证据路径以 JSON 镜头表为准。校验命令：
+镜头动作、逐句口播、模式和仓库证据以 JSON 为准：
 
 ```powershell
 uv run python scripts/validate_demo_plan.py
 ```
 
-## 现场模式
+## 4. 现场运行顺序
 
-### 主路径：实际运行 + 结构化回放
+1. 开场前确认 Compose 健康，Web 停在 `/demo`，模型模式为 `replay`；
+2. 从正常请求开始，严格按镜头表执行，不跳过故障状态；
+3. 捕获后只打开本轮新生成的胶囊；
+4. Replay 摘要不匹配时中止，不临时切换 Live；
+5. 批准前完整展示 Patch ID 和 SHA-256；
+6. 验证后展示 before/after、容器限制与主仓不变；
+7. 最后打开同一胶囊生成的自包含报告。
 
-开场前保持 Compose 服务健康、BugCapsule Web 位于 `/demo`、模型模式为 `replay`。正式操作从正常请求开始，故障与验证均实际执行；模型部分使用与本次胶囊请求摘要完全匹配的结构化回放记录。任何摘要不匹配都应中止，不临时切换成 Live。
+## 5. 断网与失败兜底
 
-### 断网路径：已彩排产物
+网络中断不影响 Compose 内部网络、结构化回放、本地 Web 或自包含报告。若现场实时操作异常，只能切换到同一冻结提交、同一轮彩排生成并已核对 SHA-256 的胶囊与报告，并明确说明“这是同一流程的已验证离线产物”。
 
-网络中断不影响 Compose 内部网络、模型回放、自包含报告或本地 Web。若现场机器运行异常，切换到同一冻结提交在完整彩排后保存的胶囊与 HTML 报告，并明确口播“这是刚才同一流程的已验证离线产物”。不得把仿真示例的未运行状态说成 Docker 实测。
+最终 MP4 仅在完成 SHA-256 校验和断网全程播放后作为最后兜底。现场环境异常时先说明原因，再播放视频；视频仍须保留 Docker 实机证据、Replay 标识和指标边界。
 
-### 完全失败路径：视频回放
+## 6. 三轮彩排门禁
 
-只有最终 MP4 已完成 SHA-256 校验且能在断网播放器中从头播放，才允许作为最后兜底。播放前一句说明现场环境异常；视频本身仍须保留 Docker 实机证明、replay 状态和指标边界。
-
-## 彩排记录与通过门槛
-
-正式录制前连续完成三次计时彩排。每次生成一条去敏记录，最终汇总写入尚未创建的 `output/video/rehearsal-summary.json`。严格字段由 `scripts/validate_rehearsal_summary.py` 定义：提交 SHA、Windows 与 Docker/Compose 版本、带时区起止时间、实际时长、联网/断网模式、Replay 披露、故障序列、胶囊/报告 SHA-256、before/after 退出码、主工作区不变、断网回放结果、枚举化观察代码和失败检查点。禁止自由文本操作者备注，避免路径、账号或设备信息进入仓库。
-
-三次均通过后执行：
+正式录制前连续完成三轮完整彩排，其中至少一轮断网。使用 `scripts/validate_rehearsal_summary.py` 定义的严格字段记录冻结提交、系统与 Docker 版本、带时区时间、时长、网络模式、故障序列、胶囊/报告 SHA-256、before/after 退出码、主工作区不变和断网播放结果。禁止自由文本操作者备注。
 
 ```powershell
 uv run python scripts/validate_rehearsal_summary.py `
@@ -77,12 +83,4 @@ uv run python scripts/validate_rehearsal_summary.py `
   --expected-commit <40位小写冻结提交SHA>
 ```
 
-三次均满足以下条件才可将视频状态改为已验证：
-
-1. 总时长在 175–185 秒内，最终剪辑精确为 180 秒；
-2. 实际故障序列、胶囊完整性、Patch 批准绑定和 before/after 结果全部一致；
-3. 主仓目标文件前后 SHA-256 不变；
-4. 全程无密钥、真实数据、个人通知或未声明的 Live 模型口径；
-5. MP4 断网完整播放，音频可辨，关键标识在 1080p 下可读。
-
-当前开发机缺少 Docker CLI，且尚无正式屏幕录制，因此彩排汇总与 MP4 均保持“外部待完成”，不得创建空文件或伪造摘要。
+三轮都必须满足：175–185 秒、故障与批准绑定一致、before 非零、after 为零、主仓未变、屏幕无敏感数据，并至少一轮完成断网回放。最终剪辑严格为 180 秒。当前 `rehearsal-summary.json` 与 MP4 均为外部待完成；真实执行前不要创建空文件。

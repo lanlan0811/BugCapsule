@@ -1,66 +1,52 @@
 # 变更日志
 
-本文件记录 BugCapsule 的重要变更。项目遵循[语义化版本](https://semver.org/lang/zh-CN/)，并在 `0.1.0` 起尽量采用“新增、变更、弃用、移除、修复、安全”分类。
+本文件记录 BugCapsule 的用户可见变化。项目遵循[语义化版本](https://semver.org/lang/zh-CN/)；`0.1.0` 正式标签尚未创建，以下内容均属于未发布版本。
 
 ## [未发布]
 
 ### 新增
 
-- 建立 Apache-2.0 许可证与项目 NOTICE。
-- 添加中英文 Issue 和 Pull Request 模板。
-- 添加贡献指南、社区行为准则、安全策略与第三方声明。
-- 添加 `0.1.0` 目标架构、开放 Capsule Schema、威胁模型和路线图。
-- 添加中英文项目介绍占位文档。
-- 建立 Python 3.10–3.12 项目骨架、环境变量配置与本地 FastAPI 健康检查。
-- 添加 Typer CLI、确定性 `uv.lock`、单元测试、覆盖率门禁和多版本 CI。
-- 添加 FastAPI 订单服务、PostgreSQL Compose 环境和可重置的连接池耗尽故障路径。
-- 添加非 root、只读文件系统、最小 capabilities 的订单服务容器基线。
-- 实现 `bugcapsule demo up|run|reset|down`，安全编排容器并校验固定故障状态序列。
-- 实现开放胶囊 0.1.0 核心 Schema、内容派生 Evidence ID、路径约束和证据引用校验。
-- 添加胶囊格式、安全不变量与标识符规则文档。
-- 添加递归默认脱敏引擎与不保留秘密原文的审计报告。
-- 添加确定性 `.bugcapsule` 导出、安全导入、完整性校验与 ZIP 攻击限制。
-- 接入 OpenTelemetry FastAPI/SQLAlchemy Span 与携带 Trace Context 的已脱敏 JSONL 日志。
-- 实现 `capture --trace-id`，关联 Span、日志、Stack Trace、源码窗口、Git、依赖和环境并导出胶囊。
-- 添加确定性证据优先级、Trace/Span 因果时间线与候选源码区域关联。
-- 添加以胶囊为事实源的可重建 SQLite 元数据索引及 `index`、`capsules` CLI 查询。
-- 添加遵循 BugCapsule Design System 的 Jinja2 + HTMX 故障列表、胶囊详情、证据链和演示控制页面。
-- 添加本地胶囊安全导入、原始归档导出、同源请求校验和本地固定版本 HTMX 资源。
-- 添加 OpenAI-compatible Responses/Chat Completions 适配器和 `live/replay/off` 模型模式。
-- 添加有输入预算的脱敏证据请求、严格根因 Schema、无效响应单次重试和本地 Evidence ID 强校验。
-- 添加结构化精确回放、原子分析产物写回、`analyze` CLI 与 Web 根因候选展示。
-- 添加 evidence-bound Patch 生成、Patch 专用精确回放和 `patch generate` CLI/Web 操作。
-- 添加严格 unified diff 解析、允许根/保护路径、源码 Evidence 绑定、工作区逃逸检查及导入时二次安全校验。
-- 添加 Patch ID/SHA-256/明确批准三重绑定、before/after 临时副本和固定命令验证状态机。
-- 添加非 root、无网络、只读挂载和资源受限的 Docker 验证器，以及验证日志二次脱敏与完整性校验。
-- 添加与 Web/CLI 共用事实源的自包含 HTML 前后对比报告、确定性报告 SHA-256 与安全下载头。
-- 添加 12 个版本化人工标注仿真案例及可确定性生成 `.bugcapsule` 的 `benchmark build` 命令。
-- 添加支持注释回放与真实 Live 模型的 `benchmark run`，实测 Top-1、引用有效率、证据覆盖及三段 P50/P95。
-- 添加受限容器内 20 次修复前/后稳定性回归，并隔离全仓覆盖率参数对固定回归退出码的干扰。
-- 添加只读 `doctor` 启动诊断与匿名化首次使用者验收协议。
-- 完成英文快速开始、公开威胁模型、0.1 路线图及 GitHub Issue/PR 模板。
-- 添加生产依赖 CycloneDX 1.6 SBOM、哈希锁定漏洞审计、wheel/sdist 完整性校验与 SHA-256 发布清单。
-- 添加受完整 CI 门禁保护的标签 Release 工作流和供应链复现文档。
-- 提交可直接导入、带 SHA-256 且由测试绑定到版本化标注的连接泄漏仿真示例胶囊。
-- 添加覆盖四项评分权重、仓库路径、复现命令和诚实完成状态的机器可校验评审证据索引。
-- 添加遵循 Design System 的 8 页中文项目介绍 PDF、确定性 ReportLab 生成器、锁定产物工具链、SHA-256 与逐页视觉 QA 记录。
-- 添加 Docker 命名卷证据受控同步、最新池耗尽 Trace 选择及 CLI/Web 一键胶囊捕获闭环。
-- 添加机器可校验的 10 镜头/180 秒演示计划、录制运行手册、断网兜底与诚实状态门禁。
-- 添加覆盖八类最终材料的提交清单、预期输出校验与正式标签 Release 阻断门禁。
-- 添加 3–5 名首次使用者结构化采集 Schema、隐私边界校验和确定性匿名汇总工具，真实结果仍须由独立参与者产生。
-- 添加三轮 Windows Docker 录制彩排的冻结提交、时长、故障序列、哈希、隔离验证与断网回放严格门禁，不生成占位结果。
+- 建立 Python 3.10–3.12 工程、冻结 `uv.lock`、Typer CLI、FastAPI Web、SQLite 索引和多版本 CI。
+- 实现 FastAPI + PostgreSQL 固定双连接池主演示，稳定复现 `500 → 500 → 503` 泄漏耗尽并支持 reset。
+- 实现 OpenTelemetry Trace/Span、Trace Context 日志、Stack Trace、源码窗口、Git、依赖与环境捕获。
+- 定义开放 `.bugcapsule` 0.1.0 Schema、内容派生 Evidence ID、确定性 ZIP、逐文件 SHA-256 和安全导入限制。
+- 添加递归默认脱敏、无秘密原文审计、证据优先级、因果时间线和候选源码关联。
+- 提供 `live`、`replay`、`off` 分析模式，严格校验结构、输入预算、Evidence 引用和精确回放身份。
+- 实现 Evidence-bound Patch：canonical unified diff、允许根、保护路径、源码 Evidence 绑定和安全二次校验。
+- 实现 Patch ID、完整 SHA-256、明确批准三重绑定，以及无网络、非 root、只读、资源受限的 Docker before/after 验证。
+- 生成与 CLI/Web 同源的自包含 HTML 对比报告，无脚本、无外链并带严格交付安全头。
+- 提供 12 个版本化仿真案例、确定性胶囊生成、Replay/Live 独立评测和三段 P50/P95 指标。
+- 在 Docker CI 中完成主演示实测和修复前 20/20 失败、修复后 20/20 通过的隔离回归。
+- 添加 `doctor` 诊断、3–5 名首次使用者匿名验收协议、180 秒镜头表和三轮 Windows 彩排门禁。
+- 添加 Apache-2.0 治理文件、CycloneDX 1.6 SBOM、哈希依赖审计、wheel/sdist 完整性检查和标签 Release 门禁。
+- 提供可导入仿真示例胶囊、8 页中文项目 PDF、评审证据索引和八类最终提交材料清单。
+- 新增本地 SVG 品牌系统：BugCapsule 专属横幅、应用图标和九枚技术栈图标。
 
-### 说明
+### 变更
 
-- 当前仓库处于 `0.1.0` 阶段七开发，已具备从捕获到隔离验证、HTML 报告和可审计发布包的工程闭环。
-- Linux Docker CI 已完成主演示与 20×before/after 实机验收；Windows 录制彩排、外部可用性验收、Live 模型评测和正式 Release 尚未完成。
+- 重写中英文 README；横幅置于应用图标上方，并以本地 SVG 展示技术栈、架构边界、快速开始和已验证指标。
+- 重写架构、Capsule Schema、威胁模型、基准、供应链、路线图、治理和参赛交付文档，统一事实来源、状态口径与复核命令。
+- Gitee 作为主仓和协作入口，GitHub 作为同步镜像与 CI/Release 展示面。
 
 ### 修复
 
-- 修复 Linux CI 中 ANSI CLI 帮助断言与非 root 验证容器无法遍历 0700 patched 临时目录的问题。
-- 修复只读订单容器启动时运行 `uv` 和命名卷目录缺少非 root 写权限导致的退出问题，并补充 Compose 失败诊断。
-- 为主演示耗尽后的 CI 断言补充保留原始退出码的容器状态与服务日志采集，便于复核远端实机故障。
-- 修复 Compose 只等待订单容器进入 running、未等待 Uvicorn HTTP 就绪而触发首个故障请求连接竞态的问题。
-- 修复服务仅连接 Docker 内部网络时宿主机 localhost 端口未发布的问题；数据库继续留在内部网络，订单服务通过禁用 masquerade 的入口桥接网络暴露。
+- 修复 Linux CI 中 ANSI CLI 帮助断言和非 root 验证容器无法遍历临时目录的问题。
+- 修复只读订单容器运行 `uv`、命名卷目录缺少非 root 写权限和 Compose 失败诊断问题。
+- 修复 Compose 仅等待容器 running、未等待 Uvicorn HTTP 就绪造成的首请求竞态。
+- 修复服务只连内部网络时宿主 `localhost` 端口不可达；PostgreSQL 继续留在内部网络。
+- 为主演示耗尽断言保留容器状态、服务日志和原始退出码，便于远端复核。
+
+### 安全
+
+- 胶囊导入拒绝路径穿越、符号链接、重复/未知成员、加密成员、异常压缩比和超限内容。
+- 模型输出不能控制本地标识、命令、路径策略或批准；未知 Evidence 引用最多重试一次后失败。
+- Patch 不直接应用主工作区，验证前后核对目标摘要，容器不挂载 Docker Socket 或宿主秘密。
+- Web 仅允许 loopback，执行 Trusted Host 与写请求 Origin 校验；HTML 报告自动转义且不加载外部资源。
+
+### 发布状态
+
+- 已验证：完整代码闭环、195 项测试门禁、12 案例 Replay 评测、Docker CI 稳定性回归、PDF 和供应链生成链路。
+- 外部待完成：比赛 Live 模型评测、3–5 名独立首次使用者、Windows 三轮录制彩排、最终 MP4 与正式 `v0.1.0` Release。
+- 未完成项不会用占位文件或估算数据标记为完成。
 
 [未发布]: https://gitee.com/lan0811/bug-capsule/commits/master

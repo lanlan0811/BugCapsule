@@ -1,17 +1,20 @@
 BugCapsule Third-Party Notices
 
-The authoritative Python dependency resolution is recorded in the committed
-uv.lock file. Every validated release bundle includes a generated CycloneDX 1.6
-SBOM, a dependency audit, a hash-locked production requirements snapshot, and
-SHA-256 checksums. This file lists software vendored directly in the BugCapsule
-source tree.
+The committed uv.lock file is the authoritative Python dependency resolution.
+Validated release bundles contain a CycloneDX 1.6 SBOM, a hash-locked
+production requirements snapshot, a dependency audit, and SHA-256 checksums.
+Those generated artifacts are the authoritative inventory for installed Python
+packages.
+
+The following software is vendored directly in the BugCapsule source tree:
 
 htmx 2.0.10
+Copyright (c) 2020 Big Sky Software
 Repository: https://github.com/bigskysoftware/htmx
 License: Zero-Clause BSD (0BSD)
 Vendored file: src/bugcapsule/static/vendor/htmx-2.0.10.min.js
 License text: src/bugcapsule/static/vendor/htmx-2.0.10.LICENSE.txt
-Integrity: sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V
+Subresource integrity: sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V
 
-The license text for BugCapsule itself is in LICENSE. This notice is
-informational and does not replace the license terms of any component.
+BugCapsule's own license is provided in LICENSE. This notice is informational
+and does not replace or modify the license terms of any component.
