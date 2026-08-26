@@ -14,6 +14,7 @@ from bugcapsule.capsule.capture import CaptureError
 from bugcapsule.cli import app
 from bugcapsule.config import get_settings
 from bugcapsule.demo.controller import DemoControlError, DemoRunResult
+from bugcapsule.diagnostics import DoctorCheck, DoctorReport
 from bugcapsule.index import CapsuleIndexError
 from bugcapsule.patching.service import PatchGenerationError
 from bugcapsule.reporting.service import HtmlReport, HtmlReportError
@@ -63,6 +64,34 @@ def test_serve_uses_validated_settings(
         "port": 9876,
         "log_level": "info",
     }
+
+
+def test_doctor_emits_checks_and_uses_exit_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeDoctor:
+        def __init__(self, ready: bool) -> None:
+            self.ready = ready
+
+        def run(self) -> DoctorReport:
+            return DoctorReport(
+                ready=self.ready,
+                checks=(
+                    DoctorCheck(
+                        check_id="docker_engine",
+                        status="passed" if self.ready else "failed",
+                        message="checked",
+                    ),
+                ),
+            )
+
+    monkeypatch.setattr("bugcapsule.cli.DoctorService", lambda _: FakeDoctor(True))
+    ready = runner.invoke(app, ["doctor"])
+    assert ready.exit_code == 0
+    assert '"ready":true' in ready.stdout
+
+    monkeypatch.setattr("bugcapsule.cli.DoctorService", lambda _: FakeDoctor(False))
+    failed = runner.invoke(app, ["doctor"])
+    assert failed.exit_code == 1
+    assert '"ready":false' in failed.stdout
 
 
 class FakeDemoController:

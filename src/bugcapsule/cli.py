@@ -17,6 +17,7 @@ from bugcapsule.capsule.identifiers import canonical_json
 from bugcapsule.config import Settings, get_settings
 from bugcapsule.demo.config import DemoSettings
 from bugcapsule.demo.controller import DemoControlError, DemoController, DemoRunResult
+from bugcapsule.diagnostics import DoctorService
 from bugcapsule.index import CapsuleIndex, CapsuleIndexError
 from bugcapsule.patching.service import PatchGenerationError, PatchGenerationService
 from bugcapsule.reporting.service import HtmlReportError, HtmlReportService
@@ -66,6 +67,15 @@ def serve() -> None:
         port=settings.port,
         log_level=settings.log_level.lower(),
     )
+
+
+@app.command()
+def doctor() -> None:
+    """只读检查首次启动、主演示与隔离验证的本地前置条件。"""
+    report = DoctorService(get_settings()).run()
+    typer.echo(canonical_json(report.model_dump(mode="json")).decode("utf-8"))
+    if not report.ready:
+        raise typer.Exit(code=1)
 
 
 @app.command()

@@ -169,6 +169,14 @@ uv run bugcapsule benchmark run --mode replay --output .\benchmark-replay
 
 数据集平均覆盖连接泄漏、数据库不可达和慢查询，生成结果包含标注文件 SHA-256，且所有案例明确标记为仿真数据。评测输出逐案例事实及 Top-1、引用有效率、证据覆盖率和三段 P50/P95；`--mode live` 才代表当前配置模型，注释回放不会冒充在线模型能力。格式、评分口径和复现约束见[基准数据集文档](docs/benchmark.md)。
 
+首次启动或路演前先运行只读诊断：
+
+```powershell
+uv run bugcapsule doctor
+```
+
+诊断会以稳定 JSON 检查 Python、源码与数据目录、Git、Docker Engine、验证 Dockerfile 和当前模型模式；它不会创建目录、启动容器或读取密钥原文。真实 3-5 人试用采用[可用性验收协议](docs/usability-study.md)记录，不用开发者自测冒充外部结果。
+
 ## 质量检查
 
 ```powershell
@@ -194,6 +202,7 @@ uv run pytest
 - [贡献指南](CONTRIBUTING.md)
 - [安全策略](SECURITY.md)
 - [基准数据集](docs/benchmark.md)
+- [可用性验收协议](docs/usability-study.md)
 - [行为准则](CODE_OF_CONDUCT.md)
 - [变更记录](CHANGELOG.md)
 
