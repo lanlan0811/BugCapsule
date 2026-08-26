@@ -9,6 +9,12 @@ from bugcapsule.capsule.archive import (
     ImportedCapsule,
     create_manifest,
 )
+from bugcapsule.capsule.evidence import (
+    EvidenceChain,
+    EvidenceCorrelator,
+    EvidenceLoadError,
+    EvidenceTimelineEntry,
+)
 from bugcapsule.capsule.identifiers import canonical_json, sha256_hex, stable_identifier
 from bugcapsule.capsule.redaction import RedactionResult, RedactionRule, Redactor
 from bugcapsule.capsule.schema import (
@@ -39,9 +45,13 @@ __all__ = [
     "CapsuleManifest",
     "CapsuleSecurityError",
     "EnvironmentInfo",
+    "EvidenceChain",
+    "EvidenceCorrelator",
     "EvidenceItem",
     "EvidenceKind",
+    "EvidenceLoadError",
     "EvidenceReferenceError",
+    "EvidenceTimelineEntry",
     "GitInfo",
     "ImportedCapsule",
     "PatchCandidate",

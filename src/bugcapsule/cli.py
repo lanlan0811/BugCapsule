@@ -9,9 +9,11 @@ from pydantic import ValidationError
 
 from bugcapsule import __version__
 from bugcapsule.capsule.capture import CaptureError, CaptureService
+from bugcapsule.capsule.identifiers import canonical_json
 from bugcapsule.config import Settings, get_settings
 from bugcapsule.demo.config import DemoSettings
 from bugcapsule.demo.controller import DemoControlError, DemoController, DemoRunResult
+from bugcapsule.index import CapsuleIndex, CapsuleIndexError
 
 app = typer.Typer(
     name="bugcapsule",
@@ -19,7 +21,11 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 demo_app = typer.Typer(help="管理可重复的数据库连接池故障演示。", no_args_is_help=True)
+index_app = typer.Typer(help="重建本地胶囊元数据索引。", no_args_is_help=True)
+capsules_app = typer.Typer(help="查询已索引的故障胶囊。", no_args_is_help=True)
 app.add_typer(demo_app, name="demo")
+app.add_typer(index_app, name="index")
+app.add_typer(capsules_app, name="capsules")
 
 
 def version_callback(value: bool) -> None:
@@ -56,12 +62,68 @@ def capture(
     trace_id: Annotated[str, typer.Option("--trace-id", help="32 位小写十六进制 Trace ID。")],
 ) -> None:
     """从本地运行时证据生成已脱敏且可校验的故障胶囊。"""
+    settings = get_settings()
     try:
-        destination = CaptureService(get_settings()).capture(trace_id)
-    except CaptureError as exc:
+        destination = CaptureService(settings).capture(trace_id)
+        CapsuleIndex.from_settings(settings).upsert(destination)
+    except (CaptureError, CapsuleIndexError) as exc:
         typer.echo(f"捕获失败：{exc}", err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(str(destination))
+
+
+@index_app.command("rebuild")
+def index_rebuild() -> None:
+    """从胶囊目录完整重建 SQLite 元数据索引。"""
+    try:
+        result = CapsuleIndex.from_settings(get_settings()).rebuild()
+    except CapsuleIndexError as exc:
+        typer.echo(f"索引重建失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(canonical_json(result.to_dict()).decode("utf-8"))
+
+
+@capsules_app.command("list")
+def capsules_list(
+    query: Annotated[
+        str | None, typer.Option("--query", help="匹配 ID、服务、入口或 Trace ID。")
+    ] = None,
+    analysis_status: Annotated[
+        str | None,
+        typer.Option("--analysis-status", help="按分析状态精确筛选。"),
+    ] = None,
+    verification_status: Annotated[
+        str | None,
+        typer.Option("--verification-status", help="按验证状态精确筛选。"),
+    ] = None,
+    limit: Annotated[int, typer.Option("--limit", min=1, max=500)] = 100,
+) -> None:
+    """以确定性 JSON 输出胶囊摘要。"""
+    try:
+        summaries = CapsuleIndex.from_settings(get_settings()).list_capsules(
+            query=query,
+            analysis_status=analysis_status,
+            verification_status=verification_status,
+            limit=limit,
+        )
+    except CapsuleIndexError as exc:
+        typer.echo(f"胶囊查询失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(canonical_json([summary.to_dict() for summary in summaries]).decode("utf-8"))
+
+
+@capsules_app.command("show")
+def capsules_show(capsule_id: str) -> None:
+    """显示胶囊清单、证据优先级和因果时间线。"""
+    try:
+        detail = CapsuleIndex.from_settings(get_settings()).get_detail(capsule_id)
+    except CapsuleIndexError as exc:
+        typer.echo(f"胶囊查询失败：{exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    if detail is None:
+        typer.echo(f"胶囊不存在：{capsule_id}", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(canonical_json(detail.to_dict()).decode("utf-8"))
 
 
 def get_demo_controller() -> DemoController:

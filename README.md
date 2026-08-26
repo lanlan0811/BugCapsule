@@ -88,6 +88,18 @@ uv run bugcapsule capture --trace-id <trace-id>
 
 输出位于 `.bugcapsule-data/capsules/`。捕获器只读取 `BUGCAPSULE_SOURCE_INCLUDE_ROOT` 指定目录中的源码窗口；归档包含 Span、日志、Stack Trace、相对源码片段、Git、依赖锁摘要、环境摘要和合并后的脱敏报告。
 
+### 证据链与本地索引
+
+`capture` 成功后会同步更新仅含元数据的 SQLite 索引。胶囊文件始终是事实源；索引可随时从已校验归档重建，损坏归档会被排除并在结果中明确列出：
+
+```powershell
+uv run bugcapsule index rebuild
+uv run bugcapsule capsules list --query demo-order-api
+uv run bugcapsule capsules show <capsule-id>
+```
+
+详情命令以确定性 JSON 输出胶囊清单、按优先级排列的证据和因果时间线。时间线通过 Trace ID、Span ID 与父 Span 关系关联 HTTP/数据库 Span、错误日志、Stack Trace 和候选源码区域，不依赖模型推断。
+
 ## 质量检查
 
 ```powershell

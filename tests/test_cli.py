@@ -10,6 +10,7 @@ from bugcapsule.capsule.capture import CaptureError
 from bugcapsule.cli import app
 from bugcapsule.config import get_settings
 from bugcapsule.demo.controller import DemoControlError, DemoRunResult
+from bugcapsule.index import CapsuleIndexError
 
 runner = CliRunner()
 
@@ -114,7 +115,12 @@ def test_capture_command_prints_destination(
             assert trace_id == "1" * 32
             return destination
 
+    class FakeIndex:
+        def upsert(self, source: Path) -> None:
+            assert source == destination
+
     monkeypatch.setattr("bugcapsule.cli.CaptureService", lambda _: FakeCaptureService())
+    monkeypatch.setattr("bugcapsule.cli.CapsuleIndex.from_settings", lambda _: FakeIndex())
 
     result = runner.invoke(app, ["capture", "--trace-id", "1" * 32])
 
@@ -132,3 +138,72 @@ def test_capture_command_reports_capture_error(monkeypatch: pytest.MonkeyPatch) 
     result = runner.invoke(app, ["capture", "--trace-id", "1" * 32])
 
     assert result.exit_code == 1
+
+
+def test_index_and_capsule_query_commands_emit_deterministic_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class JsonResult:
+        def __init__(self, value: dict[str, object]) -> None:
+            self.value = value
+
+        def to_dict(self) -> dict[str, object]:
+            return self.value
+
+    class FakeIndex:
+        def rebuild(self) -> JsonResult:
+            return JsonResult({"indexed_count": 1, "issues": []})
+
+        def list_capsules(self, **kwargs: object) -> tuple[JsonResult, ...]:
+            assert kwargs == {
+                "query": "demo",
+                "analysis_status": "not_run",
+                "verification_status": None,
+                "limit": 5,
+            }
+            return (JsonResult({"capsule_id": "cap_stage3_0001"}),)
+
+        def get_detail(self, capsule_id: str) -> JsonResult | None:
+            if capsule_id == "cap_stage3_0001":
+                return JsonResult({"summary": {"capsule_id": capsule_id}})
+            return None
+
+    monkeypatch.setattr("bugcapsule.cli.CapsuleIndex.from_settings", lambda _: FakeIndex())
+
+    rebuilt = runner.invoke(app, ["index", "rebuild"])
+    listed = runner.invoke(
+        app,
+        [
+            "capsules",
+            "list",
+            "--query",
+            "demo",
+            "--analysis-status",
+            "not_run",
+            "--limit",
+            "5",
+        ],
+    )
+    shown = runner.invoke(app, ["capsules", "show", "cap_stage3_0001"])
+    missing = runner.invoke(app, ["capsules", "show", "cap_missing"])
+
+    assert rebuilt.exit_code == 0
+    assert rebuilt.stdout.strip() == '{"indexed_count":1,"issues":[]}'
+    assert listed.exit_code == 0
+    assert listed.stdout.strip() == '[{"capsule_id":"cap_stage3_0001"}]'
+    assert shown.exit_code == 0
+    assert '"cap_stage3_0001"' in shown.stdout
+    assert missing.exit_code == 1
+
+
+def test_index_command_reports_index_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FailingIndex:
+        def rebuild(self) -> None:
+            raise CapsuleIndexError("database unavailable")
+
+    monkeypatch.setattr("bugcapsule.cli.CapsuleIndex.from_settings", lambda _: FailingIndex())
+
+    result = runner.invoke(app, ["index", "rebuild"])
+
+    assert result.exit_code == 1
+    assert "索引重建失败" in result.stderr

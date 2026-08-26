@@ -22,6 +22,8 @@
 - 添加确定性 `.bugcapsule` 导出、安全导入、完整性校验与 ZIP 攻击限制。
 - 接入 OpenTelemetry FastAPI/SQLAlchemy Span 与携带 Trace Context 的已脱敏 JSONL 日志。
 - 实现 `capture --trace-id`，关联 Span、日志、Stack Trace、源码窗口、Git、依赖和环境并导出胶囊。
+- 添加确定性证据优先级、Trace/Span 因果时间线与候选源码区域关联。
+- 添加以胶囊为事实源的可重建 SQLite 元数据索引及 `index`、`capsules` CLI 查询。
 
 ### 说明
 

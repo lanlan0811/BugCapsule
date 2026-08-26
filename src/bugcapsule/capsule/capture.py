@@ -274,11 +274,12 @@ class CaptureService:
             exception = record.get("exception")
             if not isinstance(exception, str):
                 continue
+            exception_time = self._log_record_time(record, captured_at)
             trace_id = str(record["trace_id"]) if record.get("trace_id") else None
             span_id = str(record["span_id"]) if record.get("span_id") else None
             content = self._redact_object(
                 {"stacktrace": exception},
-                captured_at,
+                exception_time,
                 f"$/stacktraces/{index}",
                 findings,
             )
@@ -286,7 +287,7 @@ class CaptureService:
                 EvidenceItem.create(
                     kind=EvidenceKind.STACKTRACE,
                     source=f"logs.exception:{index}",
-                    captured_at=captured_at,
+                    captured_at=exception_time,
                     content=content,
                     trace_id=trace_id,
                     span_id=span_id,
@@ -296,7 +297,7 @@ class CaptureService:
             items.extend(
                 self._source_evidence(
                     exception,
-                    captured_at,
+                    exception_time,
                     findings,
                     trace_id=trace_id,
                     span_id=span_id,
@@ -342,6 +343,13 @@ class CaptureService:
             )
         )
         return tuple(sorted(items, key=lambda item: (item.priority, item.evidence_id)))
+
+    @staticmethod
+    def _log_record_time(record: JsonObject, fallback: datetime) -> datetime:
+        timestamp = record.get("timestamp_unix_nano")
+        if isinstance(timestamp, int) and not isinstance(timestamp, bool):
+            return datetime.fromtimestamp(timestamp / 1_000_000_000, timezone.utc)
+        return fallback
 
     def _source_evidence(
         self,
