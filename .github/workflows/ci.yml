@@ -126,15 +126,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          trap 'docker compose down --volumes' EXIT
+          cleanup_demo() {
+            exit_code="$?"
+            if test "$exit_code" -ne 0; then
+              docker compose ps --all || true
+              docker compose logs --no-color order-service || true
+            fi
+            docker compose down --volumes
+            exit "$exit_code"
+          }
+          trap cleanup_demo EXIT
           for attempt in 1 2; do
-            code="$(curl --silent --output "leak-${attempt}.json" --write-out '%{http_code}' --request POST http://127.0.0.1:8766/demo/leak)"
+            code="$(curl --show-error --silent --output "leak-${attempt}.json" --write-out '%{http_code}' --request POST http://127.0.0.1:8766/demo/leak)"
             test "$code" = "500"
           done
-          code="$(curl --silent --output exhausted.json --write-out '%{http_code}' --request POST http://127.0.0.1:8766/demo/leak)"
+          code="$(curl --show-error --silent --output exhausted.json --write-out '%{http_code}' --request POST http://127.0.0.1:8766/demo/leak)"
           test "$code" = "503"
           grep --fixed-strings 'database_pool_exhausted' exhausted.json
-          curl --fail --silent --request POST http://127.0.0.1:8766/demo/reset
+          curl --fail --show-error --silent --request POST http://127.0.0.1:8766/demo/reset
 
   supply-chain:
     runs-on: ubuntu-latest

@@ -43,3 +43,16 @@ def test_order_image_is_read_only_ready_and_owns_configured_telemetry_mount() ->
     assert 'CMD ["/app/.venv/bin/python", "-m", "bugcapsule.demo"]' in dockerfile
     assert f"{argument}: ${{{argument}:-/var/lib/bugcapsule}}" in compose
     assert "docker compose logs --no-color order-service" in WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_demo_failure_cleanup_preserves_exit_code_and_prints_container_evidence() -> None:
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    cleanup_start = workflow.index("cleanup_demo()")
+    cleanup_end = workflow.index("trap cleanup_demo EXIT")
+    cleanup = workflow[cleanup_start:cleanup_end]
+
+    assert 'exit_code="$?"' in cleanup
+    assert 'test "$exit_code" -ne 0' in cleanup
+    assert "docker compose ps --all || true" in cleanup
+    assert "docker compose logs --no-color order-service || true" in cleanup
+    assert 'exit "$exit_code"' in cleanup
